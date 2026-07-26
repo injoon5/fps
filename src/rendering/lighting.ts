@@ -17,8 +17,12 @@ import {
 } from "three";
 import {
   createFluorescentPanelMaterial,
+  createGarageSodiumMaterial,
   createHotelCoveMaterial,
   createMartFluorescentMaterial,
+  createOfficeFluorescentMaterial,
+  createPlayplacePartyBulbMaterial,
+  createPoolroomsLightMaterial,
 } from "./materials";
 import type { LevelId } from "../types";
 
@@ -72,6 +76,9 @@ export interface DoorGlowOptions {
 const DEFAULT_FLUORO_COLOR = 0xdce8d4;
 const MART_FLUORO_COLOR = 0xc8e4f4;
 const HOTEL_COVE_COLOR = 0xffe8cc;
+const GARAGE_SODIUM_COLOR = 0xff9a3a;
+const OFFICE_FLUORO_COLOR = 0xd4e8d0;
+const PLAYPLACE_PARTY_COLOR = 0xffc878;
 
 function panelMaterialFor(profile: LevelId, intensity: number): MeshStandardMaterial {
   switch (profile) {
@@ -81,6 +88,14 @@ function panelMaterialFor(profile: LevelId, intensity: number): MeshStandardMate
       return createMartFluorescentMaterial(intensity);
     case "hotel":
       return createHotelCoveMaterial(intensity);
+    case "garage":
+      return createGarageSodiumMaterial(intensity);
+    case "poolrooms":
+      return createPoolroomsLightMaterial(intensity);
+    case "office":
+      return createOfficeFluorescentMaterial(intensity);
+    case "playplace":
+      return createPlayplacePartyBulbMaterial(intensity, PLAYPLACE_PARTY_COLOR);
     default: {
       const _exhaustive: never = profile;
       return _exhaustive;
@@ -97,6 +112,14 @@ function lightColorFor(profile: LevelId, override?: number): Color {
       return new Color(MART_FLUORO_COLOR);
     case "hotel":
       return new Color(HOTEL_COVE_COLOR);
+    case "garage":
+      return new Color(GARAGE_SODIUM_COLOR);
+    case "poolrooms":
+      return new Color(0xc8f0f4);
+    case "office":
+      return new Color(OFFICE_FLUORO_COLOR);
+    case "playplace":
+      return new Color(PLAYPLACE_PARTY_COLOR);
     default: {
       const _exhaustive: never = profile;
       return _exhaustive;
@@ -134,7 +157,10 @@ export function createFluorescentFixture(
   group.position.copy(position);
 
   const geo = new PlaneGeometry(width, depth);
-  const mat = panelMaterialFor(profile, profile === "mart" ? 1.7 : 1.35);
+  const mat = panelMaterialFor(
+    profile,
+    profile === "mart" ? 1.7 : profile === "office" ? 1.45 : 1.35,
+  );
   const panel = new Mesh(geo, mat);
   panel.rotation.x = Math.PI / 2;
   panel.position.y = 0;
@@ -429,6 +455,48 @@ export const ATMOSPHERE: Record<LevelId, AtmosphereSettings> = {
     hemiSky: 0xe8dcc8,
     hemiGround: 0x5a5048,
     hemiIntensity: 0.32,
+  },
+  garage: {
+    fogColor: 0x3a2818,
+    fogNear: 2,
+    fogFar: 16,
+    ambientHex: 0x4a3020,
+    ambientIntensity: 0.1,
+    hemiSky: 0x6a4028,
+    hemiGround: 0x120c08,
+    hemiIntensity: 0.18,
+  },
+  poolrooms: {
+    fogColor: 0x7ec8c8,
+    fogNear: 4,
+    fogFar: 36,
+    ambientHex: 0x6aada8,
+    ambientIntensity: 0.26,
+    hemiSky: 0xa8e0e0,
+    hemiGround: 0x2a6068,
+    hemiIntensity: 0.42,
+  },
+  office: {
+    // Gray-green mid fog — infinite abandoned cubicle farm at 3am
+    fogColor: 0xa8b0a4,
+    fogNear: 5,
+    fogFar: 28,
+    ambientHex: 0x889488,
+    ambientIntensity: 0.2,
+    hemiSky: 0xc4d0c0,
+    hemiGround: 0x404840,
+    hemiIntensity: 0.28,
+  },
+  playplace: {
+    // Warm dingy party lights — stale birthday air, wrong shadows
+    fogColor: 0xc8a878,
+    fogNear: 3.5,
+    fogFar: 24,
+    ambientHex: 0xb08050,
+    ambientIntensity: 0.18,
+    hemiSky: 0xe8c898,
+    hemiGround: 0x5a4030,
+    hemiIntensity: 0.28,
   },
 };
 

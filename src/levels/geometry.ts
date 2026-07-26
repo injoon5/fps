@@ -24,6 +24,9 @@ import { mergeGeometries } from "three/examples/jsm/utils/BufferGeometryUtils.js
 import {
   createBackroomsMaterialPack,
   createFluorescentPanelMaterial,
+  createGarageLineMaterial,
+  createGarageMaterialPack,
+  createGarageSodiumMaterial,
   createHotelBrassMaterial,
   createHotelCoveMaterial,
   createHotelMaterialPack,
@@ -31,6 +34,12 @@ import {
   createMartFluorescentMaterial,
   createMartMaterialPack,
   createMartShelfMaterial,
+  createOfficeFluorescentMaterial,
+  createOfficeMaterialPack,
+  createPlayplaceMaterialPack,
+  createPlayplacePartyBulbMaterial,
+  createPoolroomsLightMaterial,
+  createPoolroomsMaterialPack,
   type LevelMaterialPack,
 } from "../rendering";
 import type { AABB } from "../types";
@@ -61,7 +70,14 @@ export interface LightLib {
   ): PointLight;
 }
 
-export type ThemeId = "backrooms" | "mart" | "hotel";
+export type ThemeId =
+  | "backrooms"
+  | "mart"
+  | "hotel"
+  | "garage"
+  | "playplace"
+  | "poolrooms"
+  | "office";
 
 const THEME_PALETTE: Record<
   ThemeId,
@@ -98,6 +114,38 @@ const THEME_PALETTE: Record<
     prop: 0x6a5850,
     accent: 0xc4a070,
   },
+  garage: {
+    trim: 0x6a6458,
+    exit: 0xffb040,
+    metal: 0x3a3834,
+    light: 0xff9a3a,
+    prop: 0x1a1816,
+    accent: 0xd4b030,
+  },
+  playplace: {
+    trim: 0xc05048,
+    exit: 0xffee66,
+    metal: 0x8a8680,
+    light: 0xffc878,
+    prop: 0x3a70b0,
+    accent: 0xd4b030,
+  },
+  poolrooms: {
+    trim: 0xd8ecee,
+    exit: 0xa8fff0,
+    metal: 0x8a9a9e,
+    light: 0xc8f0f4,
+    prop: 0x3a7078,
+    accent: 0x7ec8c8,
+  },
+  office: {
+    trim: 0x8a8880,
+    exit: 0xff2233,
+    metal: 0x6a6a68,
+    light: 0xd4e8d0,
+    prop: 0x4a4844,
+    accent: 0xa8a294,
+  },
 };
 
 function mat(
@@ -129,6 +177,14 @@ function packForTheme(theme: ThemeId): LevelMaterialPack {
       return createMartMaterialPack();
     case "hotel":
       return createHotelMaterialPack();
+    case "garage":
+      return createGarageMaterialPack();
+    case "playplace":
+      return createPlayplaceMaterialPack();
+    case "poolrooms":
+      return createPoolroomsMaterialPack();
+    case "office":
+      return createOfficeMaterialPack();
     default: {
       const _exhaustive: never = theme;
       return _exhaustive;
@@ -144,6 +200,14 @@ function lightPanelFor(theme: ThemeId): MeshStandardMaterial {
       return createMartFluorescentMaterial(1.7);
     case "hotel":
       return createHotelCoveMaterial(1.2);
+    case "garage":
+      return createGarageSodiumMaterial(1.45);
+    case "playplace":
+      return createPlayplacePartyBulbMaterial(1.1, 0xffc878);
+    case "poolrooms":
+      return createPoolroomsLightMaterial(1.55);
+    case "office":
+      return createOfficeFluorescentMaterial(1.45);
     default: {
       const _exhaustive: never = theme;
       return _exhaustive;
@@ -171,12 +235,17 @@ export function materialLibFromPack(
       ? createMartShelfMaterial()
       : theme === "hotel"
         ? createHotelBrassMaterial()
-        : mat(pal.accent, { roughness: 0.6, metalness: 0.2 }));
+        : theme === "garage"
+          ? createGarageLineMaterial()
+          : mat(pal.accent, { roughness: 0.6, metalness: 0.2 }));
 
   const metal =
     theme === "mart"
       ? createMartShelfMaterial()
-      : mat(pal.metal, { roughness: 0.45, metalness: 0.65 });
+      : mat(pal.metal, {
+          roughness: theme === "garage" ? 0.55 : 0.45,
+          metalness: theme === "garage" ? 0.55 : 0.65,
+        });
 
   return {
     floor: p.floor,

@@ -82,6 +82,62 @@ const PROFILES: Record<PostFXProfileId, GradeParams> = {
     bloomRadius: 0.45,
     bloomThreshold: 0.78,
   },
+  garage: {
+    // Sodium-vapor orange / amber night — deep crushed blacks, heavy grain
+    tint: [1.22, 0.82, 0.48],
+    saturation: 0.58,
+    contrast: 1.22,
+    brightness: -0.08,
+    vignette: 0.68,
+    vignetteSoftness: 0.38,
+    grain: 0.18,
+    aberration: 0.0016,
+    bloomStrength: 0.42,
+    bloomRadius: 0.7,
+    bloomThreshold: 0.55,
+  },
+  poolrooms: {
+    // Humid cyan/teal — strong bloom on water lights, soft grain
+    tint: [0.78, 1.08, 1.2],
+    saturation: 0.62,
+    contrast: 1.06,
+    brightness: 0.015,
+    vignette: 0.5,
+    vignetteSoftness: 0.58,
+    grain: 0.125,
+    aberration: 0.00115,
+    bloomStrength: 0.78,
+    bloomRadius: 0.78,
+    bloomThreshold: 0.45,
+  },
+  office: {
+    // Sick fluorescent green-gray — oppressive 3am cubicle farm, heavy grain
+    tint: [0.88, 1.02, 0.9],
+    saturation: 0.42,
+    contrast: 1.14,
+    brightness: -0.04,
+    vignette: 0.58,
+    vignetteSoftness: 0.42,
+    grain: 0.17,
+    aberration: 0.0015,
+    bloomStrength: 0.4,
+    bloomRadius: 0.55,
+    bloomThreshold: 0.68,
+  },
+  playplace: {
+    // Faded primaries + yellowed birthday nostalgia, heavy vignette
+    tint: [1.14, 0.96, 0.78],
+    saturation: 0.62,
+    contrast: 1.1,
+    brightness: -0.04,
+    vignette: 0.72,
+    vignetteSoftness: 0.36,
+    grain: 0.15,
+    aberration: 0.0015,
+    bloomStrength: 0.4,
+    bloomRadius: 0.58,
+    bloomThreshold: 0.64,
+  },
 };
 
 /**

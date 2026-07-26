@@ -1,6 +1,13 @@
 import type { Group, Scene, Vector3 } from "three";
 
-export type LevelId = "backrooms" | "mart" | "hotel";
+export type LevelId =
+  | "backrooms"
+  | "mart"
+  | "hotel"
+  | "poolrooms"
+  | "office"
+  | "garage"
+  | "playplace";
 
 export interface LevelMeta {
   id: LevelId;
@@ -78,4 +85,12 @@ export interface GameContext {
   dt: number;
 }
 
-export const LEVEL_ORDER: LevelId[] = ["backrooms", "mart", "hotel"];
+export const LEVEL_ORDER: LevelId[] = [
+  "backrooms",
+  "mart",
+  "hotel",
+  "poolrooms",
+  "office",
+  "garage",
+  "playplace",
+];
