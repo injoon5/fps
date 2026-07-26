@@ -22,15 +22,40 @@ export const GameConfig = {
   gravity: -28,
   playerRadius: 0.42,
   playerHeight: 1.7,
-  walkSpeed: 7.2,
-  sprintSpeed: 11.5,
-  jumpSpeed: 11.2,
-  airControl: 0.55,
+  walkSpeed: 7.4,
+  sprintSpeed: 11.8,
+  jumpSpeed: 11.6,
+  /** Ground accel toward wish (1/s exponential). Higher = snappier. */
+  groundAccel: 22,
+  /** Ground stop/friction when no wish (1/s). */
+  groundDecel: 28,
+  /** Air accel toward wish (1/s). Lower = floatier. */
+  airAccel: 6.5,
+  /** Max air speed you can accelerate up to (wish cap still applies via accel). */
+  airSpeedCap: 9.5,
   mouseSensitivity: 0.0022,
   fov: 78,
   sprintFov: 88,
-  headBobAmp: 0.045,
-  headBobFreq: 11,
+  /** Extra FOV kick on jump, decays over jumpFovDecay seconds. */
+  jumpFovPunch: 6.5,
+  jumpFovDecay: 0.22,
+  /** Camera eye dip on land (meters), scales with impact. */
+  landDipAmp: 0.11,
+  landDipDecay: 9,
+  headBobAmp: 0.04,
+  headBobFreq: 11.5,
+  /** How long after leaving ground you can still jump. */
+  coyoteTime: 0.08,
+  /** How early a jump press is remembered. */
+  jumpBuffer: 0.1,
+  /** Skin inset above capsule sole for foot ray origin. */
+  groundRaySkin: 0.08,
+  /** Extra cast length below the sole. */
+  groundRayExtra: 0.18,
+  /** Min upward normal.y to count as walkable (rejects walls). */
+  groundNormalMinY: 0.45,
+  /** Max downward/upward vertical speed still considered grounded. */
+  groundMaxVy: 2.2,
   fallKillY: -12,
   checkpointGrace: 0.35,
 } as const;

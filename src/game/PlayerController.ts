@@ -13,6 +13,11 @@ export class PlayerController {
   private pitch = 0;
   private yaw = 0;
   private grounded = false;
+  private coyoteTimer = 0;
+  private jumpBufferTimer = 0;
+  private landDip = 0;
+  private jumpFovKick = 0;
+  private airFallSpeed = 0;
   private bobPhase = 0;
   private spawn = new THREE.Vector3();
   private locked = false;
@@ -21,10 +26,15 @@ export class PlayerController {
   private readonly tmp = new THREE.Vector3();
   private readonly lookQuat = new THREE.Quaternion();
   private readonly up = new THREE.Vector3(0, 1, 0);
-  private readonly ray = new RAPIER.Ray({ x: 0, y: 0, z: 0 }, { x: 0, y: -1, z: 0 });
+  private readonly ray = new RAPIER.Ray(
+    { x: 0, y: 0, z: 0 },
+    { x: 0, y: -1, z: 0 },
+  );
+  private readonly hitPoint = { x: 0, y: 0, z: 0 };
+  private readonly platformVel = new THREE.Vector3();
 
   velocityHorizontal = 0;
-  onLand?: () => void;
+  onLand?: (impact: number) => void;
   onJump?: () => void;
 
   private readonly camera: THREE.PerspectiveCamera;
@@ -86,11 +96,27 @@ export class PlayerController {
     );
     this.body.rigidBody.setLinvel({ x: 0, y: 0, z: 0 }, true);
     this.pitch = 0;
+    this.grounded = false;
+    this.coyoteTimer = 0;
+    this.jumpBufferTimer = 0;
+    this.landDip = 0;
+    this.jumpFovKick = 0;
+    this.airFallSpeed = 0;
+    this.platformVel.set(0, 0, 0);
     this.applyLook();
   }
 
   update(dt: number): { speed: number; fov: number } {
+    const safeDt = Math.min(dt, 0.05);
     this.probeGround();
+
+    if (this.grounded) {
+      this.coyoteTimer = GameConfig.coyoteTime;
+    } else {
+      this.coyoteTimer = Math.max(0, this.coyoteTimer - safeDt);
+    }
+
+    this.jumpBufferTimer = Math.max(0, this.jumpBufferTimer - safeDt);
 
     const forward = this.keys.has("KeyW") || this.keys.has("ArrowUp");
     const back = this.keys.has("KeyS") || this.keys.has("ArrowDown");
@@ -111,20 +137,48 @@ export class PlayerController {
     const targetSpeed = this.sprinting
       ? GameConfig.sprintSpeed
       : GameConfig.walkSpeed;
-    const control = this.grounded ? 1 : GameConfig.airControl;
     const vel = this.body.rigidBody.linvel();
 
-    const damp = 18 * control;
+    // Relative to moving platform so carry feels sticky without fighting wish.
+    const px = this.platformVel.x;
+    const pz = this.platformVel.z;
+    let relX = vel.x - px;
+    let relZ = vel.z - pz;
+
+    const wishing = this.wish.lengthSq() > 0;
     const desiredX = this.wish.x * targetSpeed;
     const desiredZ = this.wish.z * targetSpeed;
-    const newX = THREE.MathUtils.damp(vel.x, desiredX, damp, dt);
-    const newZ = THREE.MathUtils.damp(vel.z, desiredZ, damp, dt);
+
+    if (this.grounded) {
+      const rate = wishing ? GameConfig.groundAccel : GameConfig.groundDecel;
+      relX = THREE.MathUtils.damp(relX, wishing ? desiredX : 0, rate, safeDt);
+      relZ = THREE.MathUtils.damp(relZ, wishing ? desiredZ : 0, rate, safeDt);
+    } else if (wishing) {
+      // Floaty air: accelerate toward wish, preserve momentum when no input.
+      const airTarget = Math.min(targetSpeed, GameConfig.airSpeedCap);
+      const airDesiredX = this.wish.x * airTarget;
+      const airDesiredZ = this.wish.z * airTarget;
+      relX = THREE.MathUtils.damp(relX, airDesiredX, GameConfig.airAccel, safeDt);
+      relZ = THREE.MathUtils.damp(relZ, airDesiredZ, GameConfig.airAccel, safeDt);
+    }
 
     let newY = vel.y;
-    if (this.keys.has("Space") && this.grounded) {
-      newY = GameConfig.jumpSpeed;
+    const canJump = this.grounded || this.coyoteTimer > 0;
+    if (this.jumpBufferTimer > 0 && canJump) {
+      newY = Math.max(newY, GameConfig.jumpSpeed) + Math.max(0, this.platformVel.y);
+      this.jumpBufferTimer = 0;
+      this.coyoteTimer = 0;
       this.grounded = false;
+      this.jumpFovKick = GameConfig.jumpFovPunch;
       this.onJump?.();
+    }
+
+    // Inherit platform horizontal (and soft vertical when standing).
+    const newX = relX + px;
+    const newZ = relZ + pz;
+    if (this.grounded && this.platformVel.y !== 0) {
+      // Nudge with platform lift so we don't separate on rising movers.
+      newY = Math.max(newY, this.platformVel.y);
     }
 
     this.body.rigidBody.setLinvel({ x: newX, y: newY, z: newZ }, true);
@@ -132,14 +186,22 @@ export class PlayerController {
     const horizontal = Math.hypot(newX, newZ);
     this.velocityHorizontal = horizontal;
 
+    // Landing squash + jump FOV recovery.
+    this.landDip = THREE.MathUtils.damp(this.landDip, 0, GameConfig.landDipDecay, safeDt);
+    this.jumpFovKick = Math.max(
+      0,
+      this.jumpFovKick - (GameConfig.jumpFovPunch / GameConfig.jumpFovDecay) * safeDt,
+    );
+
     const moving = horizontal > 0.8 && this.grounded;
     if (moving) {
       this.bobPhase +=
-        dt * GameConfig.headBobFreq * (horizontal / targetSpeed);
+        safeDt * GameConfig.headBobFreq * (horizontal / targetSpeed);
     }
     const bob =
-      Math.sin(this.bobPhase) * GameConfig.headBobAmp * (moving ? 1 : 0.12);
-    const eyeY = GameConfig.playerHeight * 0.42 + bob;
+      Math.sin(this.bobPhase) * GameConfig.headBobAmp * (moving ? 1 : 0.1);
+    const eyeY =
+      GameConfig.playerHeight * 0.42 + bob - this.landDip;
     this.eye.position.set(
       Math.cos(this.bobPhase * 0.5) * bob * 0.35,
       eyeY,
@@ -153,12 +215,14 @@ export class PlayerController {
       0,
       1,
     );
-    const fov = THREE.MathUtils.lerp(
+    const sprintBlend =
+      this.sprinting && horizontal > 4 ? speedNorm : 0;
+    const baseFov = THREE.MathUtils.lerp(
       GameConfig.fov,
       GameConfig.sprintFov,
-      this.sprinting && horizontal > 4 ? speedNorm : 0,
+      sprintBlend,
     );
-
+    const fov = baseFov + this.jumpFovKick;
     return { speed: horizontal, fov };
   }
 
@@ -171,14 +235,65 @@ export class PlayerController {
 
   private probeGround(): void {
     const t = this.body.rigidBody.translation();
+    const halfHeight =
+      (GameConfig.playerHeight - GameConfig.playerRadius * 2) / 2;
+    // Capsule sole is at center - halfHeight - radius; start slightly above it.
+    const soleY = t.y - halfHeight - GameConfig.playerRadius;
     this.ray.origin.x = t.x;
-    this.ray.origin.y = t.y;
+    this.ray.origin.y = soleY + GameConfig.groundRaySkin;
     this.ray.origin.z = t.z;
-    const maxToi = GameConfig.playerRadius + 0.22;
-    const hit = this.physics.world.castRay(this.ray, maxToi, true);
-    const wasGrounded = this.grounded;
-    this.grounded = hit !== null && this.body.rigidBody.linvel().y <= 0.35;
-    if (this.grounded && !wasGrounded) this.onLand?.();
+    this.ray.dir.x = 0;
+    this.ray.dir.y = -1;
+    this.ray.dir.z = 0;
+
+    const maxToi = GameConfig.groundRaySkin + GameConfig.groundRayExtra;
+    const hit = this.physics.world.castRayAndGetNormal(
+      this.ray,
+      maxToi,
+      true,
+      undefined,
+      undefined,
+      undefined,
+      this.body.rigidBody,
+    );
+
+    const vel = this.body.rigidBody.linvel();
+    const walkable =
+      hit !== null &&
+      hit.normal.y >= GameConfig.groundNormalMinY &&
+      vel.y <= GameConfig.groundMaxVy;
+
+    const previouslyGrounded = this.grounded;
+    this.grounded = walkable;
+    this.platformVel.set(0, 0, 0);
+
+    if (!walkable) {
+      this.airFallSpeed = Math.max(this.airFallSpeed, -vel.y);
+      return;
+    }
+
+    if (hit) {
+      const parent = hit.collider.parent();
+      if (parent && parent.isKinematic()) {
+        this.hitPoint.x = this.ray.origin.x;
+        this.hitPoint.y = this.ray.origin.y - hit.timeOfImpact;
+        this.hitPoint.z = this.ray.origin.z;
+        const pv = parent.velocityAtPoint(this.hitPoint);
+        this.platformVel.set(pv.x, pv.y, pv.z);
+      }
+    }
+
+    if (!previouslyGrounded) {
+      const impact = Math.max(this.airFallSpeed, Math.max(0, -vel.y));
+      this.airFallSpeed = 0;
+      if (impact > 0.4) {
+        const tImpact = THREE.MathUtils.clamp(impact / 14, 0.3, 1);
+        this.landDip = GameConfig.landDipAmp * tImpact;
+        this.onLand?.(impact);
+      }
+    } else {
+      this.airFallSpeed = 0;
+    }
   }
 
   private syncVisuals(): void {
@@ -193,6 +308,9 @@ export class PlayerController {
   }
 
   private onKeyDown = (e: KeyboardEvent): void => {
+    if (e.code === "Space" && !this.keys.has("Space") && !e.repeat) {
+      this.jumpBufferTimer = GameConfig.jumpBuffer;
+    }
     this.keys.add(e.code);
     if (["Space", "ArrowUp", "ArrowDown"].includes(e.code)) e.preventDefault();
   };

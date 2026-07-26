@@ -24,11 +24,19 @@ export class GameAudio {
   }
 
   jump(): void {
-    this.blip(420, 180, 0.08, "square", 0.09);
+    this.blip(480, 140, 0.07, "square", 0.1);
+    window.setTimeout(() => this.blip(220, 90, 0.05, "triangle", 0.05), 28);
   }
 
-  land(): void {
-    this.blip(120, 80, 0.06, "triangle", 0.12);
+  land(impact = 6): void {
+    const t = Math.min(Math.max(impact / 12, 0.35), 1);
+    this.blip(140 - t * 40, 55, 0.05 + t * 0.04, "triangle", 0.08 + t * 0.07);
+    if (t > 0.55) {
+      window.setTimeout(
+        () => this.blip(90, 40, 0.08, "sawtooth", 0.04 + t * 0.04),
+        20,
+      );
+    }
   }
 
   checkpoint(): void {

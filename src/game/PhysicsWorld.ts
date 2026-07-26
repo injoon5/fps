@@ -51,8 +51,9 @@ export class PhysicsWorld {
     const rigidBody = this.world.createRigidBody(desc);
     const collider = this.world.createCollider(
       RAPIER.ColliderDesc.cuboid(halfExtents.x, halfExtents.y, halfExtents.z)
-        .setFriction(0.85)
-        .setRestitution(0.05),
+        .setFriction(0.7)
+        .setRestitution(0)
+        .setFrictionCombineRule(RAPIER.CoefficientCombineRule.Min),
       rigidBody,
     );
     const handle = { rigidBody, collider };
@@ -73,8 +74,9 @@ export class PhysicsWorld {
     );
     const collider = this.world.createCollider(
       RAPIER.ColliderDesc.cuboid(halfExtents.x, halfExtents.y, halfExtents.z)
-        .setFriction(0.9)
-        .setRestitution(0.1),
+        .setFriction(0.85)
+        .setRestitution(0)
+        .setFrictionCombineRule(RAPIER.CoefficientCombineRule.Min),
       rigidBody,
     );
     const handle = { rigidBody, collider };
@@ -87,16 +89,24 @@ export class PhysicsWorld {
       RAPIER.RigidBodyDesc.dynamic()
         .setTranslation(position.x, position.y, position.z)
         .setCanSleep(false)
-        .setLinearDamping(0.15)
+        .setCcdEnabled(true)
+        .setSoftCcdPrediction(0.4)
+        .setLinearDamping(0)
         .setAngularDamping(1)
         .lockRotations(),
     );
-    const halfHeight = (GameConfig.playerHeight - GameConfig.playerRadius * 2) / 2;
+    const halfHeight =
+      (GameConfig.playerHeight - GameConfig.playerRadius * 2) / 2;
+    // Near-zero friction + Min combine → no sticky walls; we drive XZ ourselves.
     const collider = this.world.createCollider(
-      RAPIER.ColliderDesc.capsule(Math.max(halfHeight, 0.05), GameConfig.playerRadius)
-        .setFriction(0.95)
+      RAPIER.ColliderDesc.capsule(
+        Math.max(halfHeight, 0.05),
+        GameConfig.playerRadius,
+      )
+        .setFriction(0)
         .setRestitution(0)
-        .setDensity(2.5),
+        .setFrictionCombineRule(RAPIER.CoefficientCombineRule.Min)
+        .setDensity(2.8),
       rigidBody,
     );
     const handle = { rigidBody, collider };

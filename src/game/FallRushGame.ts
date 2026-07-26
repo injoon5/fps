@@ -73,7 +73,7 @@ export class FallRushGame {
     this.player.spawnAt(this.course.spawn);
     this.player.bindInput();
     this.player.onJump = () => this.audio.jump();
-    this.player.onLand = () => this.audio.land();
+    this.player.onLand = (impact) => this.audio.land(impact);
 
     $("start-btn").addEventListener("click", () => void this.start());
     $("retry-btn").addEventListener("click", () => void this.retry());
@@ -132,7 +132,8 @@ export class FallRushGame {
     const dt = this.pipeline.render();
     this.time += dt;
 
-    this.env.update(this.time);
+    this.mats.update(this.time);
+    this.env.update(this.time, this.pipeline.camera.position);
     this.course.update(this.time, dt, this.physics);
 
     if (this.running && !this.finished) {
