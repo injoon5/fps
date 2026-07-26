@@ -121,13 +121,12 @@ export class RendererPipeline {
 
     const smaa = new SMAAEffect();
 
-    // AO first so bloom still pops on neon trim / finish pad
+    // Convolution effects (SSAO / chromatic) cannot share an EffectPass
+    this.composer.addPass(new EffectPass(this.camera, this.ssao));
     this.composer.addPass(
       new EffectPass(
         this.camera,
-        this.ssao,
         this.bloom,
-        this.chromatic,
         grade,
         contrast,
         tone,
@@ -135,6 +134,7 @@ export class RendererPipeline {
         smaa,
       ),
     );
+    this.composer.addPass(new EffectPass(this.camera, this.chromatic));
 
     window.addEventListener("resize", this.onResize);
   }
