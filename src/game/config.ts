@@ -27,7 +27,7 @@ export const CourseBounds = {
 } as const;
 
 export const GameConfig = {
-  gravity: -28,
+  gravity: -16.5,
   playerRadius: 0.42,
   playerHeight: 1.7,
   walkSpeed: 5.2,
