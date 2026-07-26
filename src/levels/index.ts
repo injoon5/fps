@@ -5,6 +5,7 @@
 import type { LevelBuildResult, LevelId } from "../types";
 import type { LevelMaterialPack } from "../rendering";
 import { buildBackroomsLevel } from "./backrooms";
+import { buildGarageLevel } from "./garage";
 import {
   createFallbackLighting,
   createFallbackMaterials,
@@ -15,6 +16,9 @@ import {
 } from "./geometry";
 import { buildHotelLevel } from "./hotel";
 import { buildMartLevel } from "./mart";
+import { buildOfficeLevel } from "./office";
+import { buildPlayplaceLevel } from "./playplace";
+import { buildPoolroomsLevel } from "./poolrooms";
 
 export type { MaterialLib, LightLib, ThemeId };
 export {
@@ -33,6 +37,10 @@ export {
 export { buildBackroomsLevel } from "./backrooms";
 export { buildMartLevel } from "./mart";
 export { buildHotelLevel } from "./hotel";
+export { buildPoolroomsLevel } from "./poolrooms";
+export { buildOfficeLevel } from "./office";
+export { buildGarageLevel } from "./garage";
+export { buildPlayplaceLevel } from "./playplace";
 
 /**
  * Build a complete level scene graph, colliders, lights, and meta.
@@ -55,6 +63,14 @@ export function buildLevel(
       return buildMartLevel(mats, lights);
     case "hotel":
       return buildHotelLevel(mats, lights);
+    case "poolrooms":
+      return buildPoolroomsLevel(mats, lights);
+    case "office":
+      return buildOfficeLevel(mats, lights);
+    case "garage":
+      return buildGarageLevel(mats, lights);
+    case "playplace":
+      return buildPlayplaceLevel(mats, lights);
     default: {
       const _exhaustive: never = id;
       throw new Error(`Unknown level id: ${String(_exhaustive)}`);

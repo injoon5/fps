@@ -20,12 +20,17 @@ import { buildLevel } from "./levels";
 import {
   applyAtmosphere,
   createBackroomsMaterialPack,
+  createGarageMaterialPack,
   createHotelMaterialPack,
   createMartMaterialPack,
+  createOfficeMaterialPack,
+  createPlayplaceMaterialPack,
+  createPoolroomsMaterialPack,
   createPostFX,
   type LevelMaterialPack,
 } from "./rendering";
 import type { AABB, LevelId, LevelBuildResult } from "./types";
+import { LEVEL_ORDER } from "./types";
 import { createHud } from "./ui/hud";
 
 const params = new URLSearchParams(window.location.search);
@@ -34,7 +39,11 @@ const captureLevelParam = params.get("level");
 const captureLevel: LevelId =
   captureLevelParam === "mart" ||
   captureLevelParam === "hotel" ||
-  captureLevelParam === "backrooms"
+  captureLevelParam === "backrooms" ||
+  captureLevelParam === "poolrooms" ||
+  captureLevelParam === "office" ||
+  captureLevelParam === "garage" ||
+  captureLevelParam === "playplace"
     ? captureLevelParam
     : "backrooms";
 const captureYaw = Number(params.get("yaw") ?? "0.4");
@@ -88,6 +97,10 @@ const packs: Record<LevelId, () => LevelMaterialPack> = {
   backrooms: createBackroomsMaterialPack,
   mart: createMartMaterialPack,
   hotel: createHotelMaterialPack,
+  poolrooms: createPoolroomsMaterialPack,
+  office: createOfficeMaterialPack,
+  garage: createGarageMaterialPack,
+  playplace: createPlayplaceMaterialPack,
 };
 
 rifle.setCallbacks({
@@ -160,6 +173,10 @@ async function switchLevel(id: LevelId): Promise<void> {
     backrooms: "NOCLIPPING → YELLOW ZONE",
     mart: "NOCLIPPING → AISLE ZERO",
     hotel: "NOCLIPPING → SOFT LOBBY",
+    poolrooms: "NOCLIPPING → POOL THRESHOLD",
+    office: "NOCLIPPING → INFINITE OFFICE",
+    garage: "NOCLIPPING → SODIUM DECK",
+    playplace: "NOCLIPPING → CLOSED PLAYPLACE",
   };
   await hud.showTransition(labels[id]);
   loadLevel(id);
@@ -173,9 +190,8 @@ function checkExit(): void {
   const dx = p.x - exitPos.x;
   const dz = p.z - exitPos.z;
   if (dx * dx + dz * dz < 2.8 * 2.8) {
-    const order: LevelId[] = ["backrooms", "mart", "hotel"];
-    const idx = order.indexOf(currentLevelId);
-    const next = order[(idx + 1) % order.length]!;
+    const idx = LEVEL_ORDER.indexOf(currentLevelId);
+    const next = LEVEL_ORDER[(idx + 1) % LEVEL_ORDER.length]!;
     void switchLevel(next);
   }
 }
@@ -278,22 +294,24 @@ startBtn?.addEventListener("click", () => {
 });
 
 if (captureMode) {
-  document.getElementById("boot-screen")?.classList.add("hidden");
+  const boot = document.getElementById("boot-screen");
+  if (boot) {
+    boot.classList.add("hidden");
+    boot.style.display = "none";
+  }
+  document.getElementById("hud")?.classList.add("hidden");
   loadLevel(captureLevel);
-  player.state.yaw = captureYaw;
-  player.state.pitch = capturePitch;
+  player.state.yaw = Number.isFinite(captureYaw) ? captureYaw : 0.4;
+  player.state.pitch = Number.isFinite(capturePitch) ? capturePitch : -0.08;
   input.update();
   camCtrl.update(0, player.state, input.state);
-  hud.show();
   running = true;
-  // Freeze player motion in capture (look only via params)
-  const origUpdate = player.update;
   player.update = () => {
     /* capture freeze */
   };
-  void origUpdate;
+  // Signal ready for headless capture
+  document.documentElement.dataset.captureReady = "1";
 } else {
-  // Auto-load level geometry on boot screen so first frame isn't empty black
   loadLevel("backrooms");
   running = false;
 }

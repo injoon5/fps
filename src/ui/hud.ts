@@ -4,6 +4,10 @@ const LEVEL_LABELS: Record<LevelId, string> = {
   backrooms: "LEVEL 0 — YELLOW ZONE",
   mart: "LEVEL 1 — AISLE ZERO",
   hotel: "LEVEL 2 — SOFT LOBBY",
+  poolrooms: "LEVEL 3 — POOL THRESHOLD",
+  office: "LEVEL 4 — INFINITE OFFICE",
+  garage: "LEVEL 5 — SODIUM DECK",
+  playplace: "LEVEL 6 — CLOSED PLAYPLACE",
 };
 
 export interface HudController {

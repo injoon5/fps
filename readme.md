@@ -4,9 +4,17 @@ First-person liminal horror shooter in Three.js — Kane Pixel–inspired backro
 
 ## Levels
 
-1. **Yellow Zone** — classic mono-yellow fluorescent backrooms
-2. **Aisle Zero** — endless Costco / big-box retail liminal space
-3. **Soft Lobby** — empty hotel corridors and atriums
+| Key | Id | Name |
+|-----|-----|------|
+| 1 | `backrooms` | Yellow Zone — classic mono-yellow fluorescent maze |
+| 2 | `mart` | Aisle Zero — endless Costco / big-box retail |
+| 3 | `hotel` | Soft Lobby — empty hotel corridors & atrium |
+| 4 | `poolrooms` | Pool Threshold — infinite turquoise indoor pools |
+| 5 | `office` | Infinite Office — abandoned cubicle farm at 3am |
+| 6 | `garage` | Sodium Deck — nocturnal parking structure |
+| 7 | `playplace` | Closed Playplace — soft-play / ballpit after hours |
+
+Reach the glowing exit in each level to noclip to the next.
 
 ## Controls
 
@@ -15,7 +23,7 @@ First-person liminal horror shooter in Three.js — Kane Pixel–inspired backro
 - Click / LMB — shoot
 - R — reload
 - Shift — sprint
-- 1 / 2 / 3 — switch levels
+- 1–7 — switch levels
 - Esc — release pointer
 
 ## Dev
@@ -24,3 +32,5 @@ First-person liminal horror shooter in Three.js — Kane Pixel–inspired backro
 npm install
 npm run dev
 ```
+
+Capture stills: `/?capture=1&level=poolrooms`

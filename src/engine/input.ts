@@ -1,9 +1,13 @@
 import type { LevelId } from "../types";
 
-const LEVEL_BY_DIGIT: Readonly<Record<"Digit1" | "Digit2" | "Digit3", LevelId>> = {
+const LEVEL_BY_DIGIT: Readonly<Record<string, LevelId>> = {
   Digit1: "backrooms",
   Digit2: "mart",
   Digit3: "hotel",
+  Digit4: "poolrooms",
+  Digit5: "office",
+  Digit6: "garage",
+  Digit7: "playplace",
 };
 
 export interface MouseDelta {
@@ -78,8 +82,14 @@ export function createInput(canvas: HTMLCanvasElement): InputController {
       case "Digit1":
       case "Digit2":
       case "Digit3":
-        pendingLevel = LEVEL_BY_DIGIT[e.code];
+      case "Digit4":
+      case "Digit5":
+      case "Digit6":
+      case "Digit7": {
+        const next = LEVEL_BY_DIGIT[e.code];
+        if (next) pendingLevel = next;
         break;
+      }
       default:
         break;
     }

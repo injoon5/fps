@@ -3,9 +3,11 @@
  * No external assets; Web Audio API only.
  */
 
+import type { LevelId } from "../types";
+
 export interface AudioDirector {
   resume: () => Promise<void>;
-  setLevel: (id: "backrooms" | "mart" | "hotel") => void;
+  setLevel: (id: LevelId) => void;
   setMoving: (moving: boolean, sprinting: boolean) => void;
   playGunshot: () => void;
   playReload: () => void;
@@ -64,7 +66,7 @@ export function createAudioDirector(): AudioDirector {
     if (ctx.state === "suspended") await ctx.resume();
   };
 
-  const setLevel = (id: "backrooms" | "mart" | "hotel"): void => {
+  const setLevel = (id: LevelId): void => {
     switch (id) {
       case "backrooms":
         humOsc.frequency.setTargetAtTime(118, ctx.currentTime, 0.2);
@@ -80,6 +82,26 @@ export function createAudioDirector(): AudioDirector {
         humOsc.frequency.setTargetAtTime(90, ctx.currentTime, 0.2);
         humFilter.frequency.setTargetAtTime(200, ctx.currentTime, 0.2);
         humGain.gain.setTargetAtTime(0.016, ctx.currentTime, 0.3);
+        break;
+      case "poolrooms":
+        humOsc.frequency.setTargetAtTime(160, ctx.currentTime, 0.2);
+        humFilter.frequency.setTargetAtTime(500, ctx.currentTime, 0.2);
+        humGain.gain.setTargetAtTime(0.02, ctx.currentTime, 0.3);
+        break;
+      case "office":
+        humOsc.frequency.setTargetAtTime(125, ctx.currentTime, 0.2);
+        humFilter.frequency.setTargetAtTime(340, ctx.currentTime, 0.2);
+        humGain.gain.setTargetAtTime(0.03, ctx.currentTime, 0.3);
+        break;
+      case "garage":
+        humOsc.frequency.setTargetAtTime(70, ctx.currentTime, 0.2);
+        humFilter.frequency.setTargetAtTime(180, ctx.currentTime, 0.2);
+        humGain.gain.setTargetAtTime(0.018, ctx.currentTime, 0.3);
+        break;
+      case "playplace":
+        humOsc.frequency.setTargetAtTime(105, ctx.currentTime, 0.2);
+        humFilter.frequency.setTargetAtTime(380, ctx.currentTime, 0.2);
+        humGain.gain.setTargetAtTime(0.022, ctx.currentTime, 0.3);
         break;
       default: {
         const _n: never = id;
