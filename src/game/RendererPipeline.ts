@@ -61,7 +61,6 @@ export class RendererPipeline {
       frameBufferType: THREE.HalfFloatType,
       multisampling: 0,
     });
-    this.composer.setPixelRatio(dpr);
     this.composer.setSize(window.innerWidth, window.innerHeight);
     this.composer.addPass(new RenderPass(this.scene, this.camera));
 
@@ -144,7 +143,6 @@ export class RendererPipeline {
     this.camera.updateProjectionMatrix();
     this.renderer.setPixelRatio(dpr);
     this.renderer.setSize(w, h, false);
-    this.composer.setPixelRatio(dpr);
     this.composer.setSize(w, h);
   };
 }
