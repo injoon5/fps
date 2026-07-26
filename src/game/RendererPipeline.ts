@@ -68,56 +68,57 @@ export class RendererPipeline {
     });
     this.composer.addPass(normalPass);
 
+    // Soft contact AO only — high intensity reads as comic black outlines
     this.ssao = new SSAOEffect(this.camera, normalPass.texture, {
-      samples: 22,
-      rings: 7,
-      intensity: 4.2,
-      radius: 0.42,
-      bias: 0.01,
-      fade: 0.005,
-      luminanceInfluence: 0.04,
-      minRadiusScale: 0.08,
-      worldDistanceThreshold: 90,
-      worldDistanceFalloff: 30,
-      worldProximityThreshold: 2.4,
-      worldProximityFalloff: 0.25,
-      resolutionScale: 0.8,
+      samples: 12,
+      rings: 5,
+      intensity: 1.15,
+      radius: 0.12,
+      bias: 0.025,
+      fade: 0.02,
+      luminanceInfluence: 0.35,
+      minRadiusScale: 0.15,
+      worldDistanceThreshold: 55,
+      worldDistanceFalloff: 18,
+      worldProximityThreshold: 1.5,
+      worldProximityFalloff: 0.45,
+      resolutionScale: 0.5,
       depthAwareUpsampling: true,
-      color: new THREE.Color(0x00080c),
+      color: new THREE.Color(Palette.deepTeal),
     });
 
     this.bloom = new BloomEffect({
-      intensity: 0.12,
-      luminanceThreshold: 0.97,
-      luminanceSmoothing: 0.28,
+      intensity: 0.45,
+      luminanceThreshold: 0.78,
+      luminanceSmoothing: 0.3,
       mipmapBlur: true,
-      radius: 0.28,
+      radius: 0.45,
     });
 
     this.chromatic = new ChromaticAberrationEffect({
-      offset: new THREE.Vector2(0.0003, 0.0003),
+      offset: new THREE.Vector2(0.0002, 0.0002),
       radialModulation: true,
       modulationOffset: 0.35,
     });
 
     const vignette = new VignetteEffect({
-      darkness: 0.48,
-      offset: 0.26,
+      darkness: 0.32,
+      offset: 0.38,
     });
 
     const tone = new ToneMappingEffect({
       mode: ToneMappingMode.ACES_FILMIC,
-      whitePoint: 2.15,
-      middleGrey: 0.3,
+      whitePoint: 4.0,
+      middleGrey: 0.35,
     });
 
     const grade = new HueSaturationEffect({
-      saturation: 0.14,
+      saturation: 0.08,
     });
 
     const contrast = new BrightnessContrastEffect({
-      brightness: -0.14,
-      contrast: 0.48,
+      brightness: 0.02,
+      contrast: 0.08,
     });
 
     const smaa = new SMAAEffect();
@@ -142,10 +143,10 @@ export class RendererPipeline {
 
   setSpeedFx(normalizedSpeed: number): void {
     const t = THREE.MathUtils.clamp(normalizedSpeed, 0, 1);
-    this.bloom.intensity = 0.1 + t * 0.1;
-    const aberration = 0.00012 + t * 0.0006;
+    this.bloom.intensity = 0.4 + t * 0.35;
+    const aberration = 0.00015 + t * 0.0007;
     this.chromatic.offset.set(aberration, aberration * 0.85);
-    this.ssao.intensity = 3.9 + t * 0.4;
+    this.ssao.intensity = 1.05 + t * 0.25;
   }
 
   setFov(fov: number): void {

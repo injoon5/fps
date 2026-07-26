@@ -79,7 +79,7 @@ export class FallRushGame {
     const room = new RoomEnvironment();
     this.envMap = this.pmrem.fromScene(room, 0.04).texture;
     this.pipeline.scene.environment = this.envMap;
-    this.pipeline.scene.environmentIntensity = 1.35;
+    this.pipeline.scene.environmentIntensity = 0.85;
 
     this.player = new PlayerController(
       this.pipeline.camera,
@@ -94,6 +94,7 @@ export class FallRushGame {
 
     $("start-btn").addEventListener("click", () => void this.start());
     $("retry-btn").addEventListener("click", () => void this.retry());
+    this.canvas.addEventListener("click", this.onCanvasClick);
     document.addEventListener("pointerlockchange", this.onLockChange);
 
     // Capture / QA hook: window.__FALL_RUSH__
@@ -181,6 +182,7 @@ export class FallRushGame {
     this.disposed = true;
     cancelAnimationFrame(this.anim);
     window.clearTimeout(this.checkpointToastTimer);
+    this.canvas.removeEventListener("click", this.onCanvasClick);
     document.removeEventListener("pointerlockchange", this.onLockChange);
     this.player?.dispose();
     this.course?.dispose();
@@ -220,6 +222,13 @@ export class FallRushGame {
     this.checkpointIndex = 0;
     await this.start();
   }
+
+  private onCanvasClick = (): void => {
+    if (!this.running || this.finished) return;
+    if (document.pointerLockElement !== this.canvas) {
+      this.player.requestLock();
+    }
+  };
 
   private onLockChange = (): void => {
     if (!this.running || this.finished) return;
