@@ -2,20 +2,22 @@ import * as THREE from "three";
 import {
   BloomEffect,
   BrightnessContrastEffect,
-  ChromaticAberrationEffect,
   EffectComposer,
   EffectPass,
   HueSaturationEffect,
-  NormalPass,
   RenderPass,
   SMAAEffect,
-  SSAOEffect,
   ToneMappingEffect,
   ToneMappingMode,
   VignetteEffect,
 } from "postprocessing";
 import { Palette } from "./config";
 
+/**
+ * Stable post stack only — no SSAO/NormalPass/chromatic.
+ * Half-res AO + separate convolution passes were causing intermittent
+ * half-framebuffer white/grey blocks on some GPUs.
+ */
 export class RendererPipeline {
   readonly renderer: THREE.WebGLRenderer;
   readonly composer: EffectComposer;
@@ -24,8 +26,6 @@ export class RendererPipeline {
 
   private readonly clock = new THREE.Clock();
   private bloom: BloomEffect;
-  private chromatic: ChromaticAberrationEffect;
-  private ssao: SSAOEffect;
   private disposed = false;
 
   constructor(canvas: HTMLCanvasElement) {
@@ -36,7 +36,8 @@ export class RendererPipeline {
       stencil: false,
       depth: true,
     });
-    this.renderer.setPixelRatio(Math.min(window.devicePixelRatio, 1.75));
+    const dpr = Math.min(window.devicePixelRatio, 1.5);
+    this.renderer.setPixelRatio(dpr);
     this.renderer.setSize(window.innerWidth, window.innerHeight, false);
     this.renderer.outputColorSpace = THREE.SRGBColorSpace;
     this.renderer.toneMapping = THREE.NoToneMapping;
@@ -44,9 +45,9 @@ export class RendererPipeline {
     this.renderer.shadowMap.type = THREE.PCFSoftShadowMap;
     this.renderer.info.autoReset = true;
     this.renderer.setClearColor(Palette.skyHorizon, 1);
+    this.renderer.autoClear = true;
 
     this.scene = new THREE.Scene();
-    // Linear fog: mid-course stays readable, horizon still melts into sky
     this.scene.fog = new THREE.Fog(0xffb070, 55, 260);
 
     this.camera = new THREE.PerspectiveCamera(
@@ -60,50 +61,21 @@ export class RendererPipeline {
       frameBufferType: THREE.HalfFloatType,
       multisampling: 0,
     });
+    this.composer.setPixelRatio(dpr);
+    this.composer.setSize(window.innerWidth, window.innerHeight);
     this.composer.addPass(new RenderPass(this.scene, this.camera));
 
-    // Half-res normals keep SSAO cheap on mid GPUs
-    const normalPass = new NormalPass(this.scene, this.camera, {
-      resolutionScale: 0.5,
-    });
-    this.composer.addPass(normalPass);
-
-    // Soft contact AO only — high intensity reads as comic black outlines
-    this.ssao = new SSAOEffect(this.camera, normalPass.texture, {
-      samples: 10,
-      rings: 4,
-      intensity: 0.85,
-      radius: 0.1,
-      bias: 0.03,
-      fade: 0.025,
-      luminanceInfluence: 0.4,
-      minRadiusScale: 0.15,
-      worldDistanceThreshold: 45,
-      worldDistanceFalloff: 16,
-      worldProximityThreshold: 1.4,
-      worldProximityFalloff: 0.5,
-      resolutionScale: 0.5,
-      depthAwareUpsampling: true,
-      color: new THREE.Color(0x1a3040),
-    });
-
     this.bloom = new BloomEffect({
-      intensity: 0.18,
-      luminanceThreshold: 0.94,
-      luminanceSmoothing: 0.45,
+      intensity: 0.16,
+      luminanceThreshold: 0.95,
+      luminanceSmoothing: 0.5,
       mipmapBlur: true,
-      radius: 0.35,
-    });
-
-    this.chromatic = new ChromaticAberrationEffect({
-      offset: new THREE.Vector2(0.0002, 0.0002),
-      radialModulation: true,
-      modulationOffset: 0.35,
+      radius: 0.32,
     });
 
     const vignette = new VignetteEffect({
-      darkness: 0.32,
-      offset: 0.38,
+      darkness: 0.28,
+      offset: 0.4,
     });
 
     const tone = new ToneMappingEffect({
@@ -113,18 +85,17 @@ export class RendererPipeline {
     });
 
     const grade = new HueSaturationEffect({
-      saturation: 0.28,
+      saturation: 0.26,
     });
 
     const contrast = new BrightnessContrastEffect({
-      brightness: 0.04,
-      contrast: 0.16,
+      brightness: 0.03,
+      contrast: 0.14,
     });
 
     const smaa = new SMAAEffect();
 
-    // Convolution effects (SSAO / chromatic) cannot share an EffectPass
-    this.composer.addPass(new EffectPass(this.camera, this.ssao));
+    // Single EffectPass — no convolution siblings, no half-res buffers
     this.composer.addPass(
       new EffectPass(
         this.camera,
@@ -136,17 +107,13 @@ export class RendererPipeline {
         smaa,
       ),
     );
-    this.composer.addPass(new EffectPass(this.camera, this.chromatic));
 
     window.addEventListener("resize", this.onResize);
   }
 
   setSpeedFx(normalizedSpeed: number): void {
     const t = THREE.MathUtils.clamp(normalizedSpeed, 0, 1);
-    this.bloom.intensity = 0.15 + t * 0.1;
-    const aberration = 0.0001 + t * 0.00035;
-    this.chromatic.offset.set(aberration, aberration * 0.85);
-    this.ssao.intensity = 0.95 + t * 0.15;
+    this.bloom.intensity = 0.14 + t * 0.08;
   }
 
   setFov(fov: number): void {
@@ -172,9 +139,12 @@ export class RendererPipeline {
   private onResize = (): void => {
     const w = window.innerWidth;
     const h = window.innerHeight;
+    const dpr = Math.min(window.devicePixelRatio, 1.5);
     this.camera.aspect = w / h;
     this.camera.updateProjectionMatrix();
+    this.renderer.setPixelRatio(dpr);
     this.renderer.setSize(w, h, false);
+    this.composer.setPixelRatio(dpr);
     this.composer.setSize(w, h);
   };
 }
