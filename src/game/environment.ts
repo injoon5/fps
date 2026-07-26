@@ -84,7 +84,7 @@ export function buildEnvironment(scene: THREE.Scene): {
   const disposables: Array<{ dispose: () => void }> = [];
 
   scene.background = null;
-  scene.fog = new THREE.Fog(Palette.skyHorizon, 58, 245);
+  scene.fog = new THREE.Fog(0xffb070, 62, 270);
 
   // Keep hemi very low — FP contact shadows on lime pad + pink bridge must punch
   const hemi = new THREE.HemisphereLight(Palette.skyTop, Palette.deepTeal, 0.035);
@@ -133,7 +133,7 @@ export function buildEnvironment(scene: THREE.Scene): {
     fog: false,
     uniforms: {
       topColor: { value: new THREE.Color(Palette.skyTop) },
-      midColor: { value: new THREE.Color(0xffc090) },
+      midColor: { value: new THREE.Color(0xff9a58) },
       bottomColor: { value: new THREE.Color(Palette.deepTeal) },
       hazeColor: { value: new THREE.Color(Palette.skyHorizon) },
       sunDir: { value: sunOffset.clone().normalize() },

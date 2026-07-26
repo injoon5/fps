@@ -47,7 +47,7 @@ export class RendererPipeline {
 
     this.scene = new THREE.Scene();
     // Linear fog: mid-course stays readable, horizon still melts into sky
-    this.scene.fog = new THREE.Fog(Palette.skyHorizon, 38, 210);
+    this.scene.fog = new THREE.Fog(0xffb070, 55, 260);
 
     this.camera = new THREE.PerspectiveCamera(
       78,
@@ -113,12 +113,12 @@ export class RendererPipeline {
     });
 
     const grade = new HueSaturationEffect({
-      saturation: 0.08,
+      saturation: 0.28,
     });
 
     const contrast = new BrightnessContrastEffect({
-      brightness: 0.02,
-      contrast: 0.08,
+      brightness: 0.04,
+      contrast: 0.16,
     });
 
     const smaa = new SMAAEffect();

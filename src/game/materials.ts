@@ -278,45 +278,45 @@ export class MaterialLibrary {
   private readonly stripeHot = makeStripeTexture("#0a0608", "#ff4d7a", 18);
   private readonly stripeWarn = makeStripeTexture("#120e04", "#ffd24a", 20);
   private readonly conveyorMap = makeConveyorTexture();
-  private readonly chalkPink = makeChalkTexture("#ff6b9d");
-  private readonly chalkCyan = makeChalkTexture("#4ec8e8");
-  private readonly chalkLime = makeChalkTexture("#6ad832");
-  private readonly chalkSafe = makeChalkTexture("#62d832");
-  private readonly chalkSun = makeChalkTexture("#e8a840");
+  private readonly chalkPink = makeChalkTexture("#ff4d9a");
+  private readonly chalkCyan = makeChalkTexture("#2ad8ff");
+  private readonly chalkLime = makeChalkTexture("#8cf03a");
+  private readonly chalkSafe = makeChalkTexture("#7aef38");
+  private readonly chalkSun = makeChalkTexture("#ffc038");
   private readonly vinylNormal = makeVinylNormalMap(256, 1.2);
-  readonly chevronDecal = makeChevronDecalTexture("#ffc857", "#120808");
-  readonly chevronHot = makeChevronDecalTexture("#ff4d7a", "#120808");
-  readonly chevronLime = makeChevronDecalTexture("#7cff3a", "#120808");
+  readonly chevronDecal = makeChevronDecalTexture("#ffd24a", "#120808");
+  readonly chevronHot = makeChevronDecalTexture("#ff2d6f", "#120808");
+  readonly chevronLime = makeChevronDecalTexture("#9dff45", "#120808");
 
-  readonly jellyPink = jellyMat(0xe85a88, {
+  readonly jellyPink = jellyMat(0xff4d9a, {
     roughness: 0.26,
     clearcoat: 0.94,
     clearcoatRoughness: 0.12,
-    sheen: 0.45,
+    sheen: 0.55,
     anisotropy: 0.38,
-    emissiveIntensity: 0.012,
+    emissiveIntensity: 0.04,
     map: this.chalkPink,
     normalMap: this.vinylNormal,
     normalScale: 0.62,
   });
-  readonly jellyCyan = jellyMat(0x3bb8d4, {
+  readonly jellyCyan = jellyMat(0x2ad8ff, {
     roughness: 0.28,
     clearcoat: 0.92,
     clearcoatRoughness: 0.12,
-    sheen: 0.45,
+    sheen: 0.55,
     anisotropy: 0.36,
-    emissiveIntensity: 0.01,
+    emissiveIntensity: 0.035,
     map: this.chalkCyan,
     normalMap: this.vinylNormal,
     normalScale: 0.58,
   });
-  readonly jellyLime = jellyMat(0x5ec028, {
+  readonly jellyLime = jellyMat(0x8cf03a, {
     roughness: 0.3,
     clearcoat: 0.92,
     clearcoatRoughness: 0.12,
-    sheen: 0.45,
+    sheen: 0.55,
     anisotropy: 0.32,
-    emissiveIntensity: 0.008,
+    emissiveIntensity: 0.03,
     map: this.chalkLime,
     normalMap: this.vinylNormal,
     normalScale: 0.55,
@@ -346,13 +346,13 @@ export class MaterialLibrary {
     roughness: 0.72,
     metalness: 0.04,
   });
-  readonly finish = jellyMat(0xd49830, {
-    roughness: 0.3,
+  readonly finish = jellyMat(0xffb020, {
+    roughness: 0.28,
     clearcoat: 0.9,
     clearcoatRoughness: 0.15,
-    sheen: 0.4,
+    sheen: 0.5,
     anisotropy: 0.28,
-    emissiveIntensity: 0.035,
+    emissiveIntensity: 0.08,
     metalness: 0.06,
     map: this.chalkSun,
     normalMap: this.vinylNormal,
@@ -446,19 +446,19 @@ export class MaterialLibrary {
     roughness: 0.28,
     metalness: 0.22,
     emissive: Palette.lime,
-    emissiveIntensity: 0.32,
+    emissiveIntensity: 0.45,
   });
   readonly neonHot = softMat(Palette.hot, {
     roughness: 0.28,
     metalness: 0.22,
     emissive: Palette.hot,
-    emissiveIntensity: 0.34,
+    emissiveIntensity: 0.48,
   });
   readonly neonCyan = softMat(Palette.teal, {
     roughness: 0.3,
     metalness: 0.2,
     emissive: Palette.teal,
-    emissiveIntensity: 0.3,
+    emissiveIntensity: 0.42,
   });
   readonly conveyor = softMat(0xffffff, {
     roughness: 0.55,
@@ -467,13 +467,13 @@ export class MaterialLibrary {
     emissive: Palette.teal,
     emissiveIntensity: 0.18,
   });
-  readonly safe = jellyMat(0x52b824, {
-    roughness: 0.3,
+  readonly safe = jellyMat(0x7aef38, {
+    roughness: 0.28,
     clearcoat: 0.9,
     clearcoatRoughness: 0.15,
-    sheen: 0.4,
+    sheen: 0.5,
     anisotropy: 0.25,
-    emissiveIntensity: 0.025,
+    emissiveIntensity: 0.05,
     map: this.chalkSafe,
     normalMap: this.vinylNormal,
     normalScale: 0.32,
@@ -498,17 +498,17 @@ export class MaterialLibrary {
     emissiveIntensity: 0.07,
   });
   readonly bannerHot = softMat(Palette.hot, {
-    roughness: 0.5,
+    roughness: 0.45,
     metalness: 0.04,
     emissive: Palette.hot,
-    emissiveIntensity: 0.28,
+    emissiveIntensity: 0.4,
     side: THREE.DoubleSide,
   });
   readonly bannerLime = softMat(Palette.lime, {
-    roughness: 0.5,
+    roughness: 0.45,
     metalness: 0.04,
     emissive: Palette.lime,
-    emissiveIntensity: 0.28,
+    emissiveIntensity: 0.4,
     side: THREE.DoubleSide,
   });
 
