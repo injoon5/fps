@@ -41,39 +41,7 @@ function makeConfettiTexture(): THREE.CanvasTexture {
   return tex;
 }
 
-/** Soft vertical shaft for fake god-rays (additive). */
-function makeGodRayTexture(): THREE.CanvasTexture {
-  const c = document.createElement("canvas");
-  c.width = 128;
-  c.height = 256;
-  const ctx = c.getContext("2d")!;
-  const g = ctx.createLinearGradient(64, 0, 64, 256);
-  g.addColorStop(0, "rgba(255,236,190,0)");
-  g.addColorStop(0.12, "rgba(255,230,170,0.55)");
-  g.addColorStop(0.45, "rgba(255,210,140,0.22)");
-  g.addColorStop(1, "rgba(255,180,100,0)");
-  ctx.fillStyle = g;
-  ctx.fillRect(0, 0, 128, 256);
-  const soft = ctx.createRadialGradient(64, 128, 8, 64, 128, 64);
-  soft.addColorStop(0, "rgba(255,245,210,0.5)");
-  soft.addColorStop(1, "rgba(255,245,210,0)");
-  ctx.globalCompositeOperation = "destination-in";
-  // Keep vertical falloff; horizontal soft edge via second pass
-  ctx.globalCompositeOperation = "source-over";
-  const edge = ctx.createLinearGradient(0, 0, 128, 0);
-  edge.addColorStop(0, "rgba(0,0,0,0)");
-  edge.addColorStop(0.35, "rgba(0,0,0,1)");
-  edge.addColorStop(0.65, "rgba(0,0,0,1)");
-  edge.addColorStop(1, "rgba(0,0,0,0)");
-  ctx.globalCompositeOperation = "destination-in";
-  ctx.fillStyle = edge;
-  ctx.fillRect(0, 0, 128, 256);
-  const tex = new THREE.CanvasTexture(c);
-  tex.colorSpace = THREE.SRGBColorSpace;
-  return tex;
-}
-
-/** Stadium sky, layered void haze, mirror water, god-rays, confetti + sparkles. */
+/** Stadium sky, layered void haze, mirror water, confetti + sparkles. */
 export function buildEnvironment(scene: THREE.Scene): {
   sun: THREE.DirectionalLight;
   hemi: THREE.HemisphereLight;
@@ -86,13 +54,13 @@ export function buildEnvironment(scene: THREE.Scene): {
   scene.background = null;
   scene.fog = new THREE.Fog(0xffb070, 62, 270);
 
-  // Keep hemi very low — FP contact shadows on lime pad + pink bridge must punch
-  const hemi = new THREE.HemisphereLight(Palette.skyTop, Palette.deepTeal, 0.035);
+  // Keep hemi readable so lit sides don't crush to black
+  const hemi = new THREE.HemisphereLight(Palette.skyTop, Palette.deepTeal, 0.65);
   scene.add(hemi);
 
   // Sun from upper-right / slightly behind spawn so looking down-course (-Z)
   // you get crisp pad contact shadows stretching across lime + pink bridge
-  const sun = new THREE.DirectionalLight(0xfff0d4, 1.85);
+  const sun = new THREE.DirectionalLight(0xfff0d4, 1.55);
   const sunOffset = new THREE.Vector3(78, 62, 42);
   sun.position.set(sunOffset.x, sunOffset.y, CourseBounds.zCenter + sunOffset.z);
   sun.castShadow = true;
@@ -112,15 +80,15 @@ export function buildEnvironment(scene: THREE.Scene): {
   scene.add(sun);
   scene.add(sun.target);
 
-  const fill = new THREE.DirectionalLight(Palette.teal, 0.04);
+  const fill = new THREE.DirectionalLight(Palette.teal, 0.35);
   fill.position.set(-42, 14, -22);
   scene.add(fill);
 
-  const rim = new THREE.DirectionalLight(Palette.hot, 0.04);
+  const rim = new THREE.DirectionalLight(Palette.hot, 0.2);
   rim.position.set(8, 9, -60);
   scene.add(rim);
 
-  const bounce = new THREE.DirectionalLight(Palette.sun, 0.02);
+  const bounce = new THREE.DirectionalLight(Palette.sun, 0.15);
   bounce.position.set(0, -18, -35);
   scene.add(bounce);
 
@@ -175,14 +143,12 @@ export function buildEnvironment(scene: THREE.Scene): {
         col = mix(col, hazeColor * 1.12, horizon * 0.42);
 
         float sunDot = max(dot(dir, sunDir), 0.0);
-        float disc = pow(sunDot, 420.0);
-        float corona = pow(sunDot, 28.0);
-        float glow = pow(sunDot, 6.0);
-        // Keep sky LDR so bloom doesn't white-flash when looking near the sun
-        col += vec3(1.0, 0.94, 0.78) * disc * 0.25;
-        col += vec3(1.0, 0.82, 0.5) * corona * 0.1;
-        col += vec3(1.0, 0.72, 0.42) * glow * 0.05;
-        col = min(col, vec3(1.0));
+        // Tiny soft sun — large corona was filling half the FOV as a "white flash"
+        float disc = pow(sunDot, 1600.0);
+        float corona = pow(sunDot, 120.0);
+        col += vec3(1.0, 0.92, 0.72) * disc * 0.45;
+        col += vec3(1.0, 0.78, 0.48) * corona * 0.08;
+        col = clamp(col, 0.0, 1.0);
 
         float grain = hash(dir.xz * 80.0 + time * 0.01);
         col += vec3(grain) * 0.02 * smoothstep(0.2, 0.9, h);
@@ -242,44 +208,7 @@ export function buildEnvironment(scene: THREE.Scene): {
   }
   scene.add(hazeGroup);
 
-  // ——— Fake volumetric god-rays toward sun ———
-  const godRayTex = makeGodRayTexture();
-  disposables.push(godRayTex);
-  const godRayGroup = new THREE.Group();
-  const godRays: THREE.Mesh[] = [];
-  const sunDirN = sunOffset.clone().normalize();
-  for (let i = 0; i < 9; i++) {
-    const rayMat = new THREE.MeshBasicMaterial({
-      map: godRayTex,
-      color: i % 2 === 0 ? 0xffe8b8 : 0xffd090,
-      transparent: true,
-      opacity: 0.018 + (i % 3) * 0.004,
-      depthWrite: false,
-      depthTest: true,
-      blending: THREE.NormalBlending,
-      side: THREE.DoubleSide,
-      fog: false,
-    });
-    disposables.push(rayMat);
-    const w = 6 + (i % 4) * 3.5;
-    const h = 28 + (i % 5) * 10;
-    const rayGeo = new THREE.PlaneGeometry(w, h);
-    disposables.push(rayGeo);
-    const ray = new THREE.Mesh(rayGeo, rayMat);
-    // Fan along course, angled toward sun
-    const along = -8 - i * 18;
-    const side = ((i % 3) - 1) * 7;
-    ray.position.set(side + sunDirN.x * 12, 10 + (i % 4) * 2.5, along);
-    ray.lookAt(
-      ray.position.x + sunDirN.x * 40,
-      ray.position.y + sunDirN.y * 40,
-      ray.position.z + sunDirN.z * 40,
-    );
-    ray.renderOrder = -50;
-    godRayGroup.add(ray);
-    godRays.push(ray);
-  }
-  scene.add(godRayGroup);
+  // God-ray planes removed — large DoubleSide quads were filling half the FOV
 
   // ——— Confetti ———
   const confettiCount = 920;
@@ -552,15 +481,6 @@ export function buildEnvironment(scene: THREE.Scene): {
       sun.position.set(sunOffset.x, sunOffset.y, CourseBounds.zCenter + sunOffset.z);
       sun.target.updateMatrixWorld();
 
-      // Breath god-rays
-      for (let i = 0; i < godRays.length; i++) {
-        const ray = godRays[i]!;
-        const mat = ray.material as THREE.MeshBasicMaterial;
-        mat.opacity = 0.02 + Math.sin(t * 0.7 + i * 0.85) * 0.008 + (i % 3) * 0.004;
-        ray.scale.setScalar(1 + Math.sin(t * 0.45 + i) * 0.06);
-        ray.rotation.z = Math.sin(t * 0.2 + i * 0.4) * 0.04;
-      }
-
       const posAttr = confetti.geometry.attributes.position as THREE.BufferAttribute;
       for (let i = 0; i < confettiCount; i++) {
         const spd = speeds[i]!;
@@ -606,7 +526,6 @@ export function buildEnvironment(scene: THREE.Scene): {
         sky,
         ringGroup,
         hazeGroup,
-        godRayGroup,
         confetti,
         sparkles,
         water,
