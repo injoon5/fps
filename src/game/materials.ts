@@ -85,17 +85,18 @@ function jellyMat(
   const mat = new THREE.MeshPhysicalMaterial({
     color,
     map: opts.map,
-    roughness: opts.roughness ?? 0.26,
-    metalness: opts.metalness ?? 0.04,
-    clearcoat: opts.clearcoat ?? 0.9,
-    clearcoatRoughness: opts.clearcoatRoughness ?? 0.15,
-    sheen: opts.sheen ?? 0.4,
-    sheenRoughness: opts.sheenRoughness ?? 0.32,
+    roughness: opts.roughness ?? 0.32,
+    metalness: opts.metalness ?? 0.02,
+    // Soft vinyl — high clearcoat + PMREM = single-pixel specular white flashes
+    clearcoat: Math.min(opts.clearcoat ?? 0.35, 0.4),
+    clearcoatRoughness: Math.max(opts.clearcoatRoughness ?? 0.45, 0.4),
+    sheen: opts.sheen ?? 0.35,
+    sheenRoughness: opts.sheenRoughness ?? 0.45,
     sheenColor,
-    anisotropy: opts.anisotropy ?? 0.35,
+    anisotropy: Math.min(opts.anisotropy ?? 0.15, 0.2),
     anisotropyRotation: 0.35,
-    reflectivity: 0.78,
-    envMapIntensity: 1.35,
+    reflectivity: 0.22,
+    envMapIntensity: 0.28,
     emissive: color,
     emissiveIntensity: opts.emissiveIntensity ?? 0.015,
   });
@@ -460,12 +461,12 @@ export class MaterialLibrary {
     emissive: Palette.teal,
     emissiveIntensity: 0.42,
   });
-  readonly conveyor = softMat(0xffffff, {
+  readonly conveyor = softMat(0xd8f4f0, {
     roughness: 0.55,
-    metalness: 0.16,
+    metalness: 0.1,
     map: this.conveyorMap,
     emissive: Palette.teal,
-    emissiveIntensity: 0.18,
+    emissiveIntensity: 0.12,
   });
   readonly safe = jellyMat(0x7aef38, {
     roughness: 0.28,

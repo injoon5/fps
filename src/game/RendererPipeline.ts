@@ -88,11 +88,12 @@ export class RendererPipeline {
     });
 
     this.bloom = new BloomEffect({
-      intensity: 0.28,
-      luminanceThreshold: 0.92,
-      luminanceSmoothing: 0.4,
+      // Near-off: mipmap bloom + specular hotspots = intermittent white frames
+      intensity: 0.06,
+      luminanceThreshold: 0.98,
+      luminanceSmoothing: 0.5,
       mipmapBlur: true,
-      radius: 0.4,
+      radius: 0.25,
     });
 
     this.chromatic = new ChromaticAberrationEffect({
@@ -143,10 +144,10 @@ export class RendererPipeline {
 
   setSpeedFx(normalizedSpeed: number): void {
     const t = THREE.MathUtils.clamp(normalizedSpeed, 0, 1);
-    this.bloom.intensity = 0.24 + t * 0.18;
-    const aberration = 0.00012 + t * 0.0005;
+    this.bloom.intensity = 0.04 + t * 0.04;
+    const aberration = 0.0001 + t * 0.00035;
     this.chromatic.offset.set(aberration, aberration * 0.85);
-    this.ssao.intensity = 1.05 + t * 0.2;
+    this.ssao.intensity = 1.05 + t * 0.15;
   }
 
   setFov(fov: number): void {

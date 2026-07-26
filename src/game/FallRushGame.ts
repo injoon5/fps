@@ -79,7 +79,8 @@ export class FallRushGame {
     const room = new RoomEnvironment();
     this.envMap = this.pmrem.fromScene(room, 0.04).texture;
     this.pipeline.scene.environment = this.envMap;
-    this.pipeline.scene.environmentIntensity = 0.7;
+    // Keep low — clearcoat + bright PMREM = specular white pops
+    this.pipeline.scene.environmentIntensity = 0.18;
 
     this.player = new PlayerController(
       this.pipeline.camera,

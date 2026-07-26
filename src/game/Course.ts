@@ -1006,9 +1006,9 @@ export function buildCourse(
     const glow = new THREE.MeshBasicMaterial({
       color: i === 1 ? Palette.sun : i === 0 ? Palette.hot : Palette.lime,
       transparent: true,
-      opacity: 0.14,
+      opacity: 0.06,
       depthWrite: false,
-      blending: THREE.AdditiveBlending,
+      blending: THREE.NormalBlending,
       side: THREE.DoubleSide,
     });
     extraMats.push(glow);
@@ -1058,12 +1058,12 @@ export function buildCourse(
   burstGeo.setAttribute("position", new THREE.BufferAttribute(burstPos, 3));
   burstGeo.setAttribute("color", new THREE.BufferAttribute(burstCol, 3));
   const burstMat = new THREE.PointsMaterial({
-    size: 0.72,
+    size: 0.45,
     vertexColors: true,
     transparent: true,
-    opacity: 0.95,
+    opacity: 0.55,
     depthWrite: false,
-    blending: THREE.AdditiveBlending,
+    blending: THREE.NormalBlending,
     sizeAttenuation: true,
   });
   extraMats.push(burstMat);

@@ -92,7 +92,7 @@ export function buildEnvironment(scene: THREE.Scene): {
 
   // Sun from upper-right / slightly behind spawn so looking down-course (-Z)
   // you get crisp pad contact shadows stretching across lime + pink bridge
-  const sun = new THREE.DirectionalLight(0xfff0d4, 2.55);
+  const sun = new THREE.DirectionalLight(0xfff0d4, 1.55);
   const sunOffset = new THREE.Vector3(78, 62, 42);
   sun.position.set(sunOffset.x, sunOffset.y, CourseBounds.zCenter + sunOffset.z);
   sun.castShadow = true;
@@ -179,10 +179,10 @@ export function buildEnvironment(scene: THREE.Scene): {
         float corona = pow(sunDot, 28.0);
         float glow = pow(sunDot, 6.0);
         // Keep sky LDR so bloom doesn't white-flash when looking near the sun
-        col += vec3(1.0, 0.94, 0.78) * disc * 0.55;
-        col += vec3(1.0, 0.82, 0.5) * corona * 0.22;
-        col += vec3(1.0, 0.72, 0.42) * glow * 0.1;
-        col = min(col, vec3(1.35));
+        col += vec3(1.0, 0.94, 0.78) * disc * 0.25;
+        col += vec3(1.0, 0.82, 0.5) * corona * 0.1;
+        col += vec3(1.0, 0.72, 0.42) * glow * 0.05;
+        col = min(col, vec3(1.0));
 
         float grain = hash(dir.xz * 80.0 + time * 0.01);
         col += vec3(grain) * 0.02 * smoothstep(0.2, 0.9, h);
@@ -253,10 +253,10 @@ export function buildEnvironment(scene: THREE.Scene): {
       map: godRayTex,
       color: i % 2 === 0 ? 0xffe8b8 : 0xffd090,
       transparent: true,
-      opacity: 0.04 + (i % 3) * 0.012,
+      opacity: 0.018 + (i % 3) * 0.004,
       depthWrite: false,
       depthTest: true,
-      blending: THREE.AdditiveBlending,
+      blending: THREE.NormalBlending,
       side: THREE.DoubleSide,
       fog: false,
     });
@@ -351,13 +351,13 @@ export function buildEnvironment(scene: THREE.Scene): {
   const sparkleTex = makeSparkleTexture();
   disposables.push(sparkleTex);
   const sparkleMat = new THREE.PointsMaterial({
-    size: 1.15,
+    size: 0.55,
     map: sparkleTex,
     vertexColors: true,
     transparent: true,
-    opacity: 0.85,
+    opacity: 0.35,
     depthWrite: false,
-    blending: THREE.AdditiveBlending,
+    blending: THREE.NormalBlending,
     sizeAttenuation: true,
   });
   disposables.push(sparkleMat);
@@ -440,9 +440,9 @@ export function buildEnvironment(scene: THREE.Scene): {
       // Soft specular only — hard sparks blow bloom into white frames
       float glint = pow(max(dot(nrm, sunDir), 0.0), 48.0);
       float band = pow(max(sin(vWorldPos.x * 0.35 + vWorldPos.z * 0.22 + time * 1.8), 0.0), 18.0);
-      col += glintColor * glint * 0.35;
-      col += glintColor * band * fresnel * 0.18;
-      col = min(col, vec3(1.25));
+      col += glintColor * glint * 0.18;
+      col += glintColor * band * fresnel * 0.1;
+      col = min(col, vec3(0.95));
 
       float alpha = mix(0.9, 0.68, caustic) * smoothstep(1.25, 0.32, radial) * opacityScale;
       gl_FragColor = vec4(col, alpha);
@@ -483,18 +483,18 @@ export function buildEnvironment(scene: THREE.Scene): {
   const skimMat = new THREE.ShaderMaterial({
     transparent: true,
     depthWrite: false,
-    blending: THREE.AdditiveBlending,
+    blending: THREE.NormalBlending,
     uniforms: {
       time: { value: 0 },
       waveAmp: { value: 0.12 },
       deepColor: { value: new THREE.Color(0x042830) },
       waterColor: { value: new THREE.Color(0x2ec4d8) },
-      foamColor: { value: new THREE.Color(0xffffff) },
-      glintColor: { value: new THREE.Color(0xffe8b0) },
+      foamColor: { value: new THREE.Color(0xa8e8f0) },
+      glintColor: { value: new THREE.Color(0xffd090) },
       horizonColor: { value: new THREE.Color(0xffb070) },
       skyTopColor: { value: new THREE.Color(0x6ad0ff) },
       sunDir: { value: sunOffset.clone().normalize() },
-      opacityScale: { value: 0.22 },
+      opacityScale: { value: 0.12 },
     },
     vertexShader: waterVert,
     fragmentShader: waterFrag,
@@ -556,7 +556,7 @@ export function buildEnvironment(scene: THREE.Scene): {
       for (let i = 0; i < godRays.length; i++) {
         const ray = godRays[i]!;
         const mat = ray.material as THREE.MeshBasicMaterial;
-        mat.opacity = 0.045 + Math.sin(t * 0.7 + i * 0.85) * 0.02 + (i % 3) * 0.01;
+        mat.opacity = 0.02 + Math.sin(t * 0.7 + i * 0.85) * 0.008 + (i % 3) * 0.004;
         ray.scale.setScalar(1 + Math.sin(t * 0.45 + i) * 0.06);
         ray.rotation.z = Math.sin(t * 0.2 + i * 0.4) * 0.04;
       }
@@ -587,8 +587,8 @@ export function buildEnvironment(scene: THREE.Scene): {
         sp.setXYZ(i, x, y, sp.getZ(i));
       }
       sp.needsUpdate = true;
-      sparkleMat.opacity = 0.35 + Math.sin(t * 2.8) * 0.08;
-      sparkleMat.size = 0.7 + Math.sin(t * 4.1) * 0.1;
+      sparkleMat.opacity = 0.22 + Math.sin(t * 2.8) * 0.04;
+      sparkleMat.size = 0.45 + Math.sin(t * 4.1) * 0.05;
 
       ringGroup.rotation.y = t * 0.045;
       hazeGroup.rotation.y = -t * 0.02;
