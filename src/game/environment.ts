@@ -175,15 +175,17 @@ export function buildEnvironment(scene: THREE.Scene): {
         col = mix(col, hazeColor * 1.12, horizon * 0.42);
 
         float sunDot = max(dot(dir, sunDir), 0.0);
-        float disc = pow(sunDot, 380.0);
-        float corona = pow(sunDot, 16.0);
-        float glow = pow(sunDot, 4.0);
-        col += vec3(1.0, 0.94, 0.78) * disc * 1.6;
-        col += vec3(1.0, 0.8, 0.48) * corona * 0.7;
-        col += vec3(1.0, 0.72, 0.42) * glow * 0.28;
+        float disc = pow(sunDot, 420.0);
+        float corona = pow(sunDot, 28.0);
+        float glow = pow(sunDot, 6.0);
+        // Keep sky LDR so bloom doesn't white-flash when looking near the sun
+        col += vec3(1.0, 0.94, 0.78) * disc * 0.55;
+        col += vec3(1.0, 0.82, 0.5) * corona * 0.22;
+        col += vec3(1.0, 0.72, 0.42) * glow * 0.1;
+        col = min(col, vec3(1.35));
 
         float grain = hash(dir.xz * 80.0 + time * 0.01);
-        col += vec3(grain) * 0.03 * smoothstep(0.2, 0.9, h);
+        col += vec3(grain) * 0.02 * smoothstep(0.2, 0.9, h);
 
         col = mix(col, bottomColor, smoothstep(0.05, -0.55, h) * 0.55);
 
@@ -435,13 +437,12 @@ export function buildEnvironment(scene: THREE.Scene): {
       float fresnel = pow(1.0 - max(dot(nrm, viewDir), 0.0), 3.2);
       col = mix(col, skyCol, fresnel * 0.62);
 
-      // Animated specular bands
-      float glint = pow(max(dot(nrm, sunDir), 0.0), 64.0);
-      float spark = pow(max(dot(nrm, sunDir), 0.0), 210.0);
+      // Soft specular only — hard sparks blow bloom into white frames
+      float glint = pow(max(dot(nrm, sunDir), 0.0), 48.0);
       float band = pow(max(sin(vWorldPos.x * 0.35 + vWorldPos.z * 0.22 + time * 1.8), 0.0), 18.0);
-      col += glintColor * glint * 1.05;
-      col += vec3(1.0) * spark * 1.55;
-      col += glintColor * band * fresnel * 0.35;
+      col += glintColor * glint * 0.35;
+      col += glintColor * band * fresnel * 0.18;
+      col = min(col, vec3(1.25));
 
       float alpha = mix(0.9, 0.68, caustic) * smoothstep(1.25, 0.32, radial) * opacityScale;
       gl_FragColor = vec4(col, alpha);
@@ -586,8 +587,8 @@ export function buildEnvironment(scene: THREE.Scene): {
         sp.setXYZ(i, x, y, sp.getZ(i));
       }
       sp.needsUpdate = true;
-      sparkleMat.opacity = 0.55 + Math.sin(t * 2.8) * 0.3;
-      sparkleMat.size = 0.95 + Math.sin(t * 4.1) * 0.28;
+      sparkleMat.opacity = 0.35 + Math.sin(t * 2.8) * 0.08;
+      sparkleMat.size = 0.7 + Math.sin(t * 4.1) * 0.1;
 
       ringGroup.rotation.y = t * 0.045;
       hazeGroup.rotation.y = -t * 0.02;

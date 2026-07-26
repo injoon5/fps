@@ -1257,11 +1257,11 @@ export function buildCourse(
 
       for (const p of pulseLights) {
         const mat = p.mesh.material;
-        const pulse = p.base + Math.sin(t * p.speed + p.phase) * 0.28;
+        const pulse = p.base * 0.45 + Math.sin(t * p.speed + p.phase) * 0.08;
         if (mat instanceof THREE.MeshStandardMaterial) {
-          mat.emissiveIntensity = Math.max(0.25, Math.min(0.85, pulse));
+          mat.emissiveIntensity = Math.max(0.12, Math.min(0.4, pulse));
         } else if (mat instanceof THREE.MeshBasicMaterial) {
-          mat.opacity = Math.max(0.08, Math.min(0.28, pulse));
+          mat.opacity = Math.max(0.06, Math.min(0.16, pulse * 0.35));
         }
       }
 

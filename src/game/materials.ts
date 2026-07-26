@@ -328,7 +328,7 @@ export class MaterialLibrary {
     map: this.stripeHot,
     emissive: Palette.hazard,
     emissiveMap: this.stripeHot,
-    emissiveIntensity: 0.55,
+    emissiveIntensity: 0.28,
   });
   readonly hazardWarn = softMat(0xffffff, {
     roughness: 0.38,
@@ -443,22 +443,22 @@ export class MaterialLibrary {
     emissiveIntensity: 0.03,
   });
   readonly neonLime = softMat(Palette.lime, {
-    roughness: 0.22,
-    metalness: 0.28,
+    roughness: 0.28,
+    metalness: 0.22,
     emissive: Palette.lime,
-    emissiveIntensity: 0.75,
+    emissiveIntensity: 0.32,
   });
   readonly neonHot = softMat(Palette.hot, {
-    roughness: 0.22,
-    metalness: 0.28,
+    roughness: 0.28,
+    metalness: 0.22,
     emissive: Palette.hot,
-    emissiveIntensity: 0.8,
+    emissiveIntensity: 0.34,
   });
   readonly neonCyan = softMat(Palette.teal, {
-    roughness: 0.24,
-    metalness: 0.26,
+    roughness: 0.3,
+    metalness: 0.2,
     emissive: Palette.teal,
-    emissiveIntensity: 0.7,
+    emissiveIntensity: 0.3,
   });
   readonly conveyor = softMat(0xffffff, {
     roughness: 0.55,
