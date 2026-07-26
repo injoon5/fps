@@ -205,6 +205,13 @@ export class MaterialLibrary {
     this.hazardWarn.emissiveMap?.repeat.set(2.2, 1.1);
   }
 
+  /** Idle material juice (conveyor tread shimmer). */
+  update(t: number): void {
+    if (this.conveyor.map) {
+      this.conveyor.map.offset.x = (t * 0.15) % 1;
+    }
+  }
+
   dispose(): void {
     this.stripeHot.dispose();
     this.stripeWarn.dispose();
