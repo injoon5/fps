@@ -1,9 +1,8 @@
 /**
  * Shared CSG-free room builders for THRESHOLD levels.
  *
- * Material / lighting libs are stub-compatible with `../rendering`.
- * When that module ships MaterialLib / LightLib factories, swap the
- * createFallback* helpers for rendering imports — call sites stay the same.
+ * Prefer `../rendering` material packs; supplemental props/exit/lights
+ * fill MaterialLib fields the packs don't cover.
  */
 
 import {
@@ -22,10 +21,22 @@ import {
   type ColorRepresentation,
 } from "three";
 import { mergeGeometries } from "three/examples/jsm/utils/BufferGeometryUtils.js";
+import {
+  createBackroomsMaterialPack,
+  createFluorescentPanelMaterial,
+  createHotelBrassMaterial,
+  createHotelCoveMaterial,
+  createHotelMaterialPack,
+  createHotelWoodMaterial,
+  createMartFluorescentMaterial,
+  createMartMaterialPack,
+  createMartShelfMaterial,
+  type LevelMaterialPack,
+} from "../rendering";
 import type { AABB } from "../types";
 
 /* -------------------------------------------------------------------------- */
-/*  Material / lighting contracts (mirrors future ../rendering exports)       */
+/*  Material / lighting contracts                                             */
 /* -------------------------------------------------------------------------- */
 
 export interface MaterialLib {
@@ -55,53 +66,37 @@ export type ThemeId = "backrooms" | "mart" | "hotel";
 const THEME_PALETTE: Record<
   ThemeId,
   {
-    floor: number;
-    wall: number;
-    ceiling: number;
     trim: number;
     exit: number;
     metal: number;
     light: number;
     prop: number;
     accent: number;
-    roughness: { floor: number; wall: number; ceiling: number };
   }
 > = {
   backrooms: {
-    floor: 0xc4a35a,
-    wall: 0xd4c48a,
-    ceiling: 0xe8e0c8,
     trim: 0xa89050,
     exit: 0xffee88,
     metal: 0x8a8a82,
     light: 0xfff5d0,
     prop: 0xb8a060,
     accent: 0x9a8040,
-    roughness: { floor: 0.95, wall: 0.88, ceiling: 0.75 },
   },
   mart: {
-    floor: 0x6a6a68,
-    wall: 0xb8b4a8,
-    ceiling: 0xd0cec4,
     trim: 0xf0c020,
     exit: 0xff3344,
     metal: 0x5a5a58,
     light: 0xe8f0ff,
     prop: 0x4a4a48,
     accent: 0xe8c84a,
-    roughness: { floor: 0.92, wall: 0.7, ceiling: 0.65 },
   },
   hotel: {
-    floor: 0x5c3d3a,
-    wall: 0xd8cfc0,
-    ceiling: 0xece6dc,
     trim: 0x8a7060,
     exit: 0xffcc66,
     metal: 0x9a9590,
     light: 0xffe8c8,
     prop: 0x6a5850,
     accent: 0xc4a070,
-    roughness: { floor: 0.9, wall: 0.72, ceiling: 0.68 },
   },
 };
 
@@ -126,28 +121,83 @@ function mat(
   return m;
 }
 
-/** Kane Pixel–adjacent fallback materials until `../rendering` exists. */
-export function createFallbackMaterials(theme: ThemeId): MaterialLib {
-  const p = THEME_PALETTE[theme];
+function packForTheme(theme: ThemeId): LevelMaterialPack {
+  switch (theme) {
+    case "backrooms":
+      return createBackroomsMaterialPack();
+    case "mart":
+      return createMartMaterialPack();
+    case "hotel":
+      return createHotelMaterialPack();
+    default: {
+      const _exhaustive: never = theme;
+      return _exhaustive;
+    }
+  }
+}
+
+function lightPanelFor(theme: ThemeId): MeshStandardMaterial {
+  switch (theme) {
+    case "backrooms":
+      return createFluorescentPanelMaterial(1.5);
+    case "mart":
+      return createMartFluorescentMaterial(1.7);
+    case "hotel":
+      return createHotelCoveMaterial(1.2);
+    default: {
+      const _exhaustive: never = theme;
+      return _exhaustive;
+    }
+  }
+}
+
+/** Build a full MaterialLib from a rendering LevelMaterialPack + props. */
+export function materialLibFromPack(
+  theme: ThemeId,
+  pack?: LevelMaterialPack,
+): MaterialLib {
+  const p = pack ?? packForTheme(theme);
+  const pal = THEME_PALETTE[theme];
+
+  const trim =
+    p.trim ??
+    (theme === "hotel"
+      ? createHotelWoodMaterial()
+      : mat(pal.trim, { roughness: 0.7, metalness: 0.15 }));
+
+  const accent =
+    p.accent ??
+    (theme === "mart"
+      ? createMartShelfMaterial()
+      : theme === "hotel"
+        ? createHotelBrassMaterial()
+        : mat(pal.accent, { roughness: 0.6, metalness: 0.2 }));
+
+  const metal =
+    theme === "mart"
+      ? createMartShelfMaterial()
+      : mat(pal.metal, { roughness: 0.45, metalness: 0.65 });
+
   return {
-    floor: mat(p.floor, { roughness: p.roughness.floor }),
-    wall: mat(p.wall, { roughness: p.roughness.wall }),
-    ceiling: mat(p.ceiling, { roughness: p.roughness.ceiling }),
-    trim: mat(p.trim, { roughness: 0.7, metalness: 0.15 }),
-    exit: mat(p.exit, {
+    floor: p.floor,
+    wall: p.wall,
+    ceiling: p.ceiling,
+    trim,
+    accent,
+    metal,
+    lightPanel: lightPanelFor(theme),
+    prop: mat(pal.prop, { roughness: 0.85 }),
+    exit: mat(pal.exit, {
       roughness: 0.35,
-      emissive: p.exit,
+      emissive: pal.exit,
       emissiveIntensity: 1.4,
     }),
-    metal: mat(p.metal, { roughness: 0.45, metalness: 0.65 }),
-    lightPanel: mat(p.light, {
-      roughness: 0.3,
-      emissive: p.light,
-      emissiveIntensity: 1.8,
-    }),
-    prop: mat(p.prop, { roughness: 0.85 }),
-    accent: mat(p.accent, { roughness: 0.6, metalness: 0.2 }),
   };
+}
+
+/** Preferred entry — uses `../rendering` packs. */
+export function createFallbackMaterials(theme: ThemeId): MaterialLib {
+  return materialLibFromPack(theme);
 }
 
 export function createFallbackLighting(): LightLib {
@@ -156,8 +206,7 @@ export function createFallbackLighting(): LightLib {
       return new AmbientLight(color, intensity);
     },
     point(color, intensity, distance, decay = 2) {
-      const light = new PointLight(color, intensity, distance, decay);
-      return light;
+      return new PointLight(color, intensity, distance, decay);
     },
   };
 }

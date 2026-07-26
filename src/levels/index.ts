@@ -3,10 +3,12 @@
  */
 
 import type { LevelBuildResult, LevelId } from "../types";
+import type { LevelMaterialPack } from "../rendering";
 import { buildBackroomsLevel } from "./backrooms";
 import {
   createFallbackLighting,
   createFallbackMaterials,
+  materialLibFromPack,
   type LightLib,
   type MaterialLib,
   type ThemeId,
@@ -18,6 +20,7 @@ export type { MaterialLib, LightLib, ThemeId };
 export {
   createFallbackMaterials,
   createFallbackLighting,
+  materialLibFromPack,
   GeometryBatcher,
   addRoom,
   addBoxWall,
@@ -31,30 +34,19 @@ export { buildBackroomsLevel } from "./backrooms";
 export { buildMartLevel } from "./mart";
 export { buildHotelLevel } from "./hotel";
 
-function materialsFor(
-  id: LevelId,
-  materials?: MaterialLib,
-): MaterialLib {
-  if (materials) return materials;
-  return createFallbackMaterials(id);
-}
-
-function lightingFor(lighting?: LightLib): LightLib {
-  return lighting ?? createFallbackLighting();
-}
-
 /**
  * Build a complete level scene graph, colliders, lights, and meta.
- * Pass `materials` / `lighting` from `../rendering` when available;
- * otherwise Kane Pixel fallback libs are used.
+ *
+ * `materials` may be a full MaterialLib or a rendering LevelMaterialPack
+ * (adapted via materialLibFromPack). Lighting defaults to PointLight helpers.
  */
 export function buildLevel(
   id: LevelId,
-  materials?: MaterialLib,
+  materials?: MaterialLib | LevelMaterialPack,
   lighting?: LightLib,
 ): LevelBuildResult {
-  const mats = materialsFor(id, materials);
-  const lights = lightingFor(lighting);
+  const mats = resolveMaterials(id, materials);
+  const lights = lighting ?? createFallbackLighting();
 
   switch (id) {
     case "backrooms":
@@ -68,4 +60,24 @@ export function buildLevel(
       throw new Error(`Unknown level id: ${String(_exhaustive)}`);
     }
   }
+}
+
+function isMaterialLib(
+  value: MaterialLib | LevelMaterialPack,
+): value is MaterialLib {
+  return (
+    "exit" in value &&
+    "metal" in value &&
+    "lightPanel" in value &&
+    "prop" in value
+  );
+}
+
+function resolveMaterials(
+  id: LevelId,
+  materials?: MaterialLib | LevelMaterialPack,
+): MaterialLib {
+  if (!materials) return createFallbackMaterials(id);
+  if (isMaterialLib(materials)) return materials;
+  return materialLibFromPack(id, materials);
 }
