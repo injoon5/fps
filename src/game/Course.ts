@@ -97,8 +97,8 @@ export function buildCourse(
     h: number,
     cornerRadius?: number,
   ): THREE.BufferGeometry {
-    const r = cornerRadius ?? Math.min(w, d) * 0.14;
-    const bevel = Math.min(0.12, w * 0.04, d * 0.04, h * 0.28);
+    const r = cornerRadius ?? Math.min(w, d) * 0.18;
+    const bevel = Math.min(0.26, w * 0.065, d * 0.065, h * 0.42);
     const shape = roundedRectShape(
       Math.max(0.35, w - bevel * 2),
       Math.max(0.35, d - bevel * 2),
@@ -111,8 +111,8 @@ export function buildCourse(
       bevelThickness: bevel,
       bevelSize: bevel,
       bevelOffset: 0,
-      bevelSegments: 2,
-      curveSegments: 8,
+      bevelSegments: 4,
+      curveSegments: 10,
     });
     geo.rotateX(-Math.PI / 2);
     geo.computeBoundingBox();

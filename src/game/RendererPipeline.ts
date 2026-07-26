@@ -46,7 +46,8 @@ export class RendererPipeline {
     this.renderer.setClearColor(Palette.skyHorizon, 1);
 
     this.scene = new THREE.Scene();
-    this.scene.fog = new THREE.FogExp2(Palette.skyHorizon, 0.0095);
+    // Linear fog: mid-course stays readable, horizon still melts into sky
+    this.scene.fog = new THREE.Fog(Palette.skyHorizon, 38, 210);
 
     this.camera = new THREE.PerspectiveCamera(
       78,
@@ -68,29 +69,29 @@ export class RendererPipeline {
     this.composer.addPass(normalPass);
 
     this.ssao = new SSAOEffect(this.camera, normalPass.texture, {
-      samples: 8,
+      samples: 10,
       rings: 5,
-      intensity: 1.15,
-      radius: 0.085,
-      bias: 0.03,
-      fade: 0.02,
-      luminanceInfluence: 0.35,
-      minRadiusScale: 0.15,
-      worldDistanceThreshold: 55,
-      worldDistanceFalloff: 18,
-      worldProximityThreshold: 1.6,
-      worldProximityFalloff: 0.55,
-      resolutionScale: 0.5,
+      intensity: 1.45,
+      radius: 0.11,
+      bias: 0.025,
+      fade: 0.018,
+      luminanceInfluence: 0.28,
+      minRadiusScale: 0.12,
+      worldDistanceThreshold: 70,
+      worldDistanceFalloff: 22,
+      worldProximityThreshold: 1.8,
+      worldProximityFalloff: 0.5,
+      resolutionScale: 0.55,
       depthAwareUpsampling: true,
       color: new THREE.Color(Palette.deepTeal),
     });
 
     this.bloom = new BloomEffect({
-      intensity: 0.52,
-      luminanceThreshold: 0.68,
-      luminanceSmoothing: 0.32,
+      intensity: 0.72,
+      luminanceThreshold: 0.55,
+      luminanceSmoothing: 0.28,
       mipmapBlur: true,
-      radius: 0.52,
+      radius: 0.58,
     });
 
     this.chromatic = new ChromaticAberrationEffect({
@@ -100,23 +101,23 @@ export class RendererPipeline {
     });
 
     const vignette = new VignetteEffect({
-      darkness: 0.38,
-      offset: 0.36,
+      darkness: 0.32,
+      offset: 0.34,
     });
 
     const tone = new ToneMappingEffect({
       mode: ToneMappingMode.ACES_FILMIC,
-      whitePoint: 4.0,
-      middleGrey: 0.32,
+      whitePoint: 4.2,
+      middleGrey: 0.26,
     });
 
     const grade = new HueSaturationEffect({
-      saturation: 0.1,
+      saturation: 0.2,
     });
 
     const contrast = new BrightnessContrastEffect({
-      brightness: 0.015,
-      contrast: 0.07,
+      brightness: -0.01,
+      contrast: 0.14,
     });
 
     const smaa = new SMAAEffect();
@@ -141,11 +142,11 @@ export class RendererPipeline {
 
   setSpeedFx(normalizedSpeed: number): void {
     const t = THREE.MathUtils.clamp(normalizedSpeed, 0, 1);
-    this.bloom.intensity = 0.42 + t * 0.58;
-    const aberration = 0.00025 + t * 0.00115;
+    this.bloom.intensity = 0.62 + t * 0.45;
+    const aberration = 0.0002 + t * 0.001;
     this.chromatic.offset.set(aberration, aberration * 0.85);
     // Slightly lift AO in motion so platforms read with more contact
-    this.ssao.intensity = 1.05 + t * 0.25;
+    this.ssao.intensity = 1.35 + t * 0.3;
   }
 
   setFov(fov: number): void {

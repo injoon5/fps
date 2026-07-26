@@ -54,44 +54,45 @@ export function buildEnvironment(scene: THREE.Scene): {
 
   // Linear fog (matches RendererPipeline) — mid-course readable, sky not washed
   scene.background = null;
-  scene.fog = new THREE.Fog(Palette.skyHorizon, 42, 220);
+  scene.fog = new THREE.Fog(Palette.skyHorizon, 55, 240);
 
-  // Lower hemi so directional shadows actually read on pads
-  const hemi = new THREE.HemisphereLight(Palette.skyTop, Palette.deepTeal, 0.48);
+  // Keep hemi low so directional contact shadows punch
+  const hemi = new THREE.HemisphereLight(Palette.skyTop, Palette.deepTeal, 0.32);
   scene.add(hemi);
 
   // Fixed course-wide soft shadows: cover z≈10 → −210 along the gauntlet
-  const sun = new THREE.DirectionalLight(0xffe8c8, 3.15);
-  const sunOffset = new THREE.Vector3(56, 88, 42);
+  const sun = new THREE.DirectionalLight(0xfff0d4, 2.95);
+  // Strong lateral bias so pad silhouettes stretch across water toward camera
+  const sunOffset = new THREE.Vector3(95, 78, 28);
   sun.position.set(sunOffset.x, sunOffset.y, CourseBounds.zCenter + sunOffset.z);
   sun.castShadow = true;
   sun.shadow.mapSize.set(4096, 4096);
-  sun.shadow.camera.near = 5;
-  sun.shadow.camera.far = 320;
+  sun.shadow.camera.near = 10;
+  sun.shadow.camera.far = 360;
   // Ortho frustum sized for full course length in light space
-  sun.shadow.camera.left = -70;
-  sun.shadow.camera.right = 70;
-  sun.shadow.camera.top = 150;
-  sun.shadow.camera.bottom = -150;
-  sun.shadow.bias = -0.00012;
-  sun.shadow.normalBias = 0.04;
-  sun.shadow.radius = 3.2;
+  sun.shadow.camera.left = -62;
+  sun.shadow.camera.right = 62;
+  sun.shadow.camera.top = 140;
+  sun.shadow.camera.bottom = -140;
+  sun.shadow.bias = -0.00025;
+  sun.shadow.normalBias = 0.03;
+  sun.shadow.radius = 1.8;
   sun.target.position.set(0, 0, CourseBounds.zCenter);
   sun.shadow.camera.updateProjectionMatrix();
   scene.add(sun);
   scene.add(sun.target);
 
   // Soft bounce fill — teal from below/side for contact read on jelly
-  const fill = new THREE.DirectionalLight(Palette.teal, 0.28);
+  const fill = new THREE.DirectionalLight(Palette.teal, 0.18);
   fill.position.set(-38, 16, -28);
   scene.add(fill);
 
-  const rim = new THREE.DirectionalLight(Palette.hot, 0.22);
+  const rim = new THREE.DirectionalLight(Palette.hot, 0.14);
   rim.position.set(12, 10, -55);
   scene.add(rim);
 
   // Warm ground bounce so underside of platforms aren't pure black
-  const bounce = new THREE.DirectionalLight(Palette.sun, 0.16);
+  const bounce = new THREE.DirectionalLight(Palette.sun, 0.1);
   bounce.position.set(0, -20, -40);
   scene.add(bounce);
 
@@ -308,9 +309,9 @@ export function buildEnvironment(scene: THREE.Scene): {
     uniforms: {
       time: { value: 0 },
       deepColor: { value: new THREE.Color(Palette.void) },
-      waterColor: { value: new THREE.Color(0x1490a8) },
-      foamColor: { value: new THREE.Color(Palette.foam) },
-      glintColor: { value: new THREE.Color(0xfff2c8) },
+      waterColor: { value: new THREE.Color(0x1ab0c8) },
+      foamColor: { value: new THREE.Color(0xe8fff8) },
+      glintColor: { value: new THREE.Color(0xfff6d8) },
       sunDir: { value: sunOffset.clone().normalize() },
     },
     vertexShader: /* glsl */ `
@@ -386,8 +387,19 @@ export function buildEnvironment(scene: THREE.Scene): {
   const water = new THREE.Mesh(waterGeo, waterMat);
   water.rotation.x = -Math.PI / 2;
   water.position.y = -8;
-  water.receiveShadow = true;
+  water.receiveShadow = false;
   scene.add(water);
+
+  // Shadow catcher just above water — custom water shader can't receive maps
+  const catcherGeo = new THREE.PlaneGeometry(320, 320);
+  disposables.push(catcherGeo);
+  const catcherMat = new THREE.ShadowMaterial({ opacity: 0.72 });
+  disposables.push(catcherMat);
+  const shadowCatcher = new THREE.Mesh(catcherGeo, catcherMat);
+  shadowCatcher.rotation.x = -Math.PI / 2;
+  shadowCatcher.position.y = -7.82;
+  shadowCatcher.receiveShadow = true;
+  scene.add(shadowCatcher);
 
   // Soft caustic glow planes under course
   const glowPlanes: THREE.Mesh[] = [];
@@ -461,7 +473,7 @@ export function buildEnvironment(scene: THREE.Scene): {
       water.position.y = -8 + Math.sin(t * 0.65) * 0.1;
     },
     dispose() {
-      scene.remove(sky, ringGroup, hazeGroup, confetti, sparkles, water);
+      scene.remove(sky, ringGroup, hazeGroup, confetti, sparkles, water, shadowCatcher);
       scene.remove(hemi, sun, sun.target, fill, rim, bounce);
       for (const g of glowPlanes) {
         scene.remove(g);

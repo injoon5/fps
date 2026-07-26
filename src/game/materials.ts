@@ -118,22 +118,22 @@ export class MaterialLibrary {
   private readonly conveyorMap = makeConveyorTexture();
 
   readonly jellyPink = softMat(Palette.platform, {
-    roughness: 0.22,
-    metalness: 0.08,
+    roughness: 0.34,
+    metalness: 0.06,
     emissive: Palette.platform,
-    emissiveIntensity: 0.2,
+    emissiveIntensity: 0.06,
   });
   readonly jellyCyan = softMat(Palette.platformAlt, {
-    roughness: 0.24,
-    metalness: 0.1,
+    roughness: 0.36,
+    metalness: 0.08,
     emissive: Palette.platformAlt,
-    emissiveIntensity: 0.18,
+    emissiveIntensity: 0.05,
   });
   readonly jellyLime = softMat(Palette.lime, {
-    roughness: 0.26,
-    metalness: 0.06,
+    roughness: 0.38,
+    metalness: 0.05,
     emissive: Palette.lime,
-    emissiveIntensity: 0.32,
+    emissiveIntensity: 0.1,
   });
   /** Hot hazard — emissive boosted for UnrealBloom. */
   readonly hazard = softMat(0xffffff, {
@@ -142,7 +142,7 @@ export class MaterialLibrary {
     map: this.stripeHot,
     emissive: Palette.hazard,
     emissiveMap: this.stripeHot,
-    emissiveIntensity: 1.85,
+    emissiveIntensity: 2.15,
   });
   readonly hazardWarn = softMat(0xffffff, {
     roughness: 0.26,
@@ -150,7 +150,7 @@ export class MaterialLibrary {
     map: this.stripeWarn,
     emissive: Palette.sun,
     emissiveMap: this.stripeWarn,
-    emissiveIntensity: 1.65,
+    emissiveIntensity: 1.95,
   });
   readonly metal = softMat(Palette.metal, {
     roughness: 0.22,
@@ -161,10 +161,10 @@ export class MaterialLibrary {
     metalness: 0.04,
   });
   readonly finish = softMat(Palette.sun, {
-    roughness: 0.16,
-    metalness: 0.28,
+    roughness: 0.2,
+    metalness: 0.24,
     emissive: Palette.sun,
-    emissiveIntensity: 1.05,
+    emissiveIntensity: 0.85,
   });
   readonly water = new THREE.MeshStandardMaterial({
     color: Palette.water,
@@ -174,87 +174,87 @@ export class MaterialLibrary {
     opacity: 0.76,
   });
   /** Contrasting rim lip on pads. */
-  readonly rim = softMat(0xfff6e8, {
-    roughness: 0.28,
-    metalness: 0.22,
-    emissive: 0xffe8c8,
-    emissiveIntensity: 0.55,
+  readonly rim = softMat(0xffe8c0, {
+    roughness: 0.32,
+    metalness: 0.18,
+    emissive: 0xffc878,
+    emissiveIntensity: 0.42,
   });
   /** Darker underside skirt — reads thickness without a second light pass. */
-  readonly underside = softMat(0x122028, {
-    roughness: 0.82,
-    metalness: 0.1,
+  readonly underside = softMat(0x0c181c, {
+    roughness: 0.88,
+    metalness: 0.08,
     emissive: Palette.deepTeal,
-    emissiveIntensity: 0.18,
+    emissiveIntensity: 0.08,
   });
-  readonly trim = softMat(0xffffff, {
-    roughness: 0.32,
-    metalness: 0.14,
+  readonly trim = softMat(0xf2f6f8, {
+    roughness: 0.36,
+    metalness: 0.12,
     emissive: 0xffffff,
-    emissiveIntensity: 0.4,
+    emissiveIntensity: 0.22,
   });
   readonly neonLime = softMat(Palette.lime, {
-    roughness: 0.12,
-    metalness: 0.42,
+    roughness: 0.1,
+    metalness: 0.45,
     emissive: Palette.lime,
-    emissiveIntensity: 2.55,
+    emissiveIntensity: 2.9,
   });
   readonly neonHot = softMat(Palette.hot, {
-    roughness: 0.12,
-    metalness: 0.42,
+    roughness: 0.1,
+    metalness: 0.45,
     emissive: Palette.hot,
-    emissiveIntensity: 2.45,
+    emissiveIntensity: 2.8,
   });
   readonly neonCyan = softMat(Palette.teal, {
-    roughness: 0.14,
-    metalness: 0.4,
+    roughness: 0.12,
+    metalness: 0.42,
     emissive: Palette.teal,
-    emissiveIntensity: 2.35,
+    emissiveIntensity: 2.7,
   });
   readonly conveyor = softMat(0xffffff, {
     roughness: 0.48,
     metalness: 0.26,
     map: this.conveyorMap,
     emissive: Palette.teal,
-    emissiveIntensity: 0.62,
+    emissiveIntensity: 0.7,
   });
   readonly safe = softMat(Palette.safe, {
-    roughness: 0.28,
-    metalness: 0.08,
+    roughness: 0.32,
+    metalness: 0.06,
     emissive: Palette.safe,
-    emissiveIntensity: 0.48,
+    emissiveIntensity: 0.22,
   });
   /** Matte rubber / candy shell for hammer heads & roller tips. */
   readonly rubberHot = softMat(Palette.hot, {
     roughness: 0.52,
     metalness: 0.06,
     emissive: Palette.hot,
-    emissiveIntensity: 0.55,
+    emissiveIntensity: 0.4,
   });
   readonly rubberCyan = softMat(Palette.teal, {
     roughness: 0.5,
     metalness: 0.06,
     emissive: Palette.teal,
-    emissiveIntensity: 0.48,
+    emissiveIntensity: 0.35,
   });
   readonly rubberLime = softMat(Palette.lime, {
     roughness: 0.48,
     metalness: 0.05,
     emissive: Palette.lime,
-    emissiveIntensity: 0.5,
+    emissiveIntensity: 0.38,
   });
   readonly bannerHot = softMat(Palette.hot, {
     roughness: 0.4,
     metalness: 0.08,
     emissive: Palette.hot,
-    emissiveIntensity: 0.9,
+    emissiveIntensity: 0.95,
     side: THREE.DoubleSide,
   });
   readonly bannerLime = softMat(Palette.lime, {
     roughness: 0.4,
     metalness: 0.08,
     emissive: Palette.lime,
-    emissiveIntensity: 0.9,
+    emissiveIntensity: 0.95,
     side: THREE.DoubleSide,
   });
 

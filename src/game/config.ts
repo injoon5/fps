@@ -1,21 +1,29 @@
 /** Shared visual tokens — tropical candy stadium, not purple AI sludge. */
 export const Palette = {
-  void: 0x04100e,
-  deepTeal: 0x0a241f,
-  foam: 0xf4fff0,
+  void: 0x021820,
+  deepTeal: 0x063a42,
+  foam: 0xe8fff8,
   lime: 0x7cff3a,
   hot: 0xff3d6e,
   sun: 0xffc857,
-  teal: 0x1ad4b0,
-  skyTop: 0x4ec9ff,
-  skyHorizon: 0xffb07a,
-  water: 0x0d3d4a,
+  teal: 0x2ee6c0,
+  skyTop: 0x3bb8ff,
+  skyHorizon: 0xff9a5c,
+  water: 0x0a5a68,
   platform: 0xff6b9d,
   platformAlt: 0x5ce1ff,
   hazard: 0xff3d6e,
   safe: 0x7cff3a,
   wood: 0xd4a574,
   metal: 0xb8c4cc,
+} as const;
+
+/** Course extents for lighting / shadow coverage (world Z). */
+export const CourseBounds = {
+  zNear: 10,
+  zFar: -210,
+  zCenter: -100,
+  xHalf: 22,
 } as const;
 
 export const GameConfig = {

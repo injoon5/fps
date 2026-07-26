@@ -348,11 +348,12 @@ body,
   position: absolute;
   inset: 0;
   background:
-    radial-gradient(ellipse 85% 55% at 50% 8%, rgba(255, 61, 110, 0.32), transparent 58%),
-    radial-gradient(ellipse 70% 50% at 88% 78%, rgba(124, 255, 58, 0.2), transparent 52%),
-    radial-gradient(ellipse 55% 42% at 8% 72%, rgba(26, 212, 176, 0.22), transparent 48%),
-    linear-gradient(168deg, #0b261f 0%, #04100e 48%, #140a0e 100%);
+    radial-gradient(ellipse 85% 55% at 50% 8%, rgba(255, 61, 110, 0.22), transparent 58%),
+    radial-gradient(ellipse 70% 50% at 88% 78%, rgba(124, 255, 58, 0.12), transparent 52%),
+    radial-gradient(ellipse 55% 42% at 8% 72%, rgba(26, 212, 176, 0.14), transparent 48%),
+    linear-gradient(168deg, rgba(6, 28, 32, 0.42) 0%, rgba(4, 16, 14, 0.28) 48%, rgba(20, 10, 14, 0.5) 100%);
   overflow: hidden;
+  backdrop-filter: blur(1.5px);
 }
 
 .bg-blob {

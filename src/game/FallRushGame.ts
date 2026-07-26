@@ -50,6 +50,10 @@ export class FallRushGame {
   private time = 0;
   private disposed = false;
   private checkpointToastTimer = 0;
+  /** Temporary cinematic fly path for screenshots / attract polish. */
+  private debugFly = false;
+  /** When true, attract loop won't overwrite an explicit capture camera. */
+  private cameraLocked = false;
   private readonly playerBox = new THREE.Box3();
   private readonly playerSize = new THREE.Vector3(0.5, 1.6, 0.5);
 
@@ -81,6 +85,49 @@ export class FallRushGame {
     $("retry-btn").addEventListener("click", () => void this.retry());
     document.addEventListener("pointerlockchange", this.onLockChange);
 
+    // Capture / QA hook: window.__FALL_RUSH__.enableDebugFly()
+    (
+      window as Window & {
+        __FALL_RUSH__?: {
+          enableDebugFly: () => void;
+          setCamera: (x: number, y: number, z: number, lx: number, ly: number, lz: number) => void;
+          hideUi: () => void;
+          startGame: () => void;
+        };
+      }
+    ).__FALL_RUSH__ = {
+      enableDebugFly: () => {
+        this.debugFly = true;
+        this.cameraLocked = false;
+        this.running = false;
+        this.finished = false;
+        this.overlay.classList.add("hidden");
+        this.finishOverlay.classList.add("hidden");
+        this.hud.classList.add("hidden");
+      },
+      setCamera: (x, y, z, lx, ly, lz) => {
+        this.debugFly = false;
+        this.cameraLocked = true;
+        this.running = false;
+        const cam = this.pipeline.camera;
+        cam.position.set(x, y, z);
+        cam.lookAt(lx, ly, lz);
+        this.pipeline.setFov(58);
+        this.pipeline.setSpeedFx(0.32);
+      },
+      hideUi: () => {
+        this.overlay.classList.add("hidden");
+        this.finishOverlay.classList.add("hidden");
+        this.hud.classList.add("hidden");
+        this.pauseHint.classList.add("hidden");
+      },
+      startGame: () => {
+        this.cameraLocked = false;
+        this.debugFly = false;
+        void this.start();
+      },
+    };
+
     this.loop();
   }
 
@@ -101,6 +148,8 @@ export class FallRushGame {
 
   private async start(): Promise<void> {
     await this.audio.unlock();
+    this.cameraLocked = false;
+    this.debugFly = false;
     this.overlay.classList.add("hidden");
     this.finishOverlay.classList.add("hidden");
     this.finishOverlay.classList.remove("celebrate");
@@ -168,22 +217,43 @@ export class FallRushGame {
         this.physics.step();
       }
     } else {
-      // Attract mode: gentle camera orbit over start
+      // Attract / debug fly: showcase lit pads + contact shadows down the course
       if (!this.running) {
-        const cam = this.pipeline.camera;
-        const r = 14;
-        cam.position.set(
-          Math.sin(this.time * 0.25) * r,
-          8 + Math.sin(this.time * 0.4) * 1.5,
-          8 + Math.cos(this.time * 0.25) * r * 0.4,
-        );
-        cam.lookAt(0, 1.5, -8);
-        this.pipeline.setFov(62);
-        this.pipeline.setSpeedFx(0.15);
+        this.updateAttractCamera();
       }
       this.physics.step();
     }
   };
+
+  private updateAttractCamera(): void {
+    if (this.cameraLocked) return;
+
+    const cam = this.pipeline.camera;
+    const t = this.time;
+
+    if (this.debugFly) {
+      // Slow cinematic dolly along -Z so screenshots catch soft shadows on pads
+      const z = 6 - ((t * 9) % 200);
+      const x = Math.sin(t * 0.35) * 4.5;
+      const y = 7.5 + Math.sin(t * 0.45) * 1.2;
+      cam.position.set(x, y, z);
+      cam.lookAt(Math.sin(t * 0.2) * 1.5, 1.2, z - 18);
+      this.pipeline.setFov(56);
+      this.pipeline.setSpeedFx(0.35);
+      return;
+    }
+
+    // Title attract: low three-quarter over start pad looking down the lit course
+    const sway = Math.sin(t * 0.28);
+    cam.position.set(
+      9.5 + sway * 2.2,
+      6.8 + Math.sin(t * 0.5) * 0.55,
+      7.5 + Math.cos(t * 0.22) * 1.8,
+    );
+    cam.lookAt(0.4, 1.1, -16 - Math.sin(t * 0.18) * 4);
+    this.pipeline.setFov(58);
+    this.pipeline.setSpeedFx(0.28);
+  }
 
   private checkFall(y: number): void {
     if (y > GameConfig.fallKillY) return;
