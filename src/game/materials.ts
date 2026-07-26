@@ -27,31 +27,57 @@ function softMat(
   });
 }
 
-/** Diagonal hazard stripes — high-contrast readable danger. */
+/**
+ * High-contrast diagonal hazard stripes — tiles cleanly for bloom-friendly danger.
+ * Bright band + near-black band so emissiveMap punches through postprocessing.
+ */
 function makeStripeTexture(
-  a: string,
-  b: string,
-  stripeWidth = 18,
-  size = 256,
+  dark: string,
+  bright: string,
+  stripeWidth = 16,
+  size = 512,
 ): THREE.CanvasTexture {
   const canvas = document.createElement("canvas");
   canvas.width = size;
   canvas.height = size;
   const ctx = canvas.getContext("2d")!;
-  ctx.fillStyle = a;
+
+  ctx.fillStyle = dark;
   ctx.fillRect(0, 0, size, size);
-  ctx.fillStyle = b;
+
+  ctx.save();
   ctx.translate(size / 2, size / 2);
   ctx.rotate(-Math.PI / 4);
   ctx.translate(-size, -size);
-  for (let x = -size; x < size * 2; x += stripeWidth * 2) {
-    ctx.fillRect(x, 0, stripeWidth, size * 3);
+
+  const period = stripeWidth * 2;
+  for (let x = -size; x < size * 3; x += period) {
+    // Soft edge on bright stripe for cleaner mip filtering
+    const grad = ctx.createLinearGradient(x, 0, x + stripeWidth, 0);
+    grad.addColorStop(0, bright);
+    grad.addColorStop(0.92, bright);
+    grad.addColorStop(1, dark);
+    ctx.fillStyle = grad;
+    ctx.fillRect(x, 0, stripeWidth, size * 4);
   }
+  ctx.restore();
+
+  // Micro grit so large tiles don't look flat
+  const img = ctx.getImageData(0, 0, size, size);
+  const data = img.data;
+  for (let i = 0; i < data.length; i += 16) {
+    const n = ((i * 17) % 13) - 6;
+    data[i]! = Math.min(255, Math.max(0, data[i]! + n));
+    data[i + 1]! = Math.min(255, Math.max(0, data[i + 1]! + n));
+    data[i + 2]! = Math.min(255, Math.max(0, data[i + 2]! + n));
+  }
+  ctx.putImageData(img, 0, 0);
+
   const tex = new THREE.CanvasTexture(canvas);
   tex.wrapS = THREE.RepeatWrapping;
   tex.wrapT = THREE.RepeatWrapping;
   tex.colorSpace = THREE.SRGBColorSpace;
-  tex.anisotropy = 4;
+  tex.anisotropy = 8;
   tex.needsUpdate = true;
   return tex;
 }
@@ -87,122 +113,156 @@ function makeConveyorTexture(): THREE.CanvasTexture {
 
 /** Procedural candy-stadium materials — glossy jelly + chalk platforms. */
 export class MaterialLibrary {
-  private readonly stripeHot = makeStripeTexture("#1a0a10", "#ff3d6e", 20);
-  private readonly stripeWarn = makeStripeTexture("#1a1408", "#ffc857", 22);
+  private readonly stripeHot = makeStripeTexture("#0a0608", "#ff4d7a", 18);
+  private readonly stripeWarn = makeStripeTexture("#120e04", "#ffd24a", 20);
   private readonly conveyorMap = makeConveyorTexture();
 
   readonly jellyPink = softMat(Palette.platform, {
-    roughness: 0.28,
-    metalness: 0.05,
+    roughness: 0.22,
+    metalness: 0.08,
     emissive: Palette.platform,
-    emissiveIntensity: 0.08,
+    emissiveIntensity: 0.2,
   });
   readonly jellyCyan = softMat(Palette.platformAlt, {
-    roughness: 0.3,
-    metalness: 0.06,
+    roughness: 0.24,
+    metalness: 0.1,
     emissive: Palette.platformAlt,
-    emissiveIntensity: 0.06,
+    emissiveIntensity: 0.18,
   });
   readonly jellyLime = softMat(Palette.lime, {
-    roughness: 0.32,
-    metalness: 0.04,
+    roughness: 0.26,
+    metalness: 0.06,
     emissive: Palette.lime,
-    emissiveIntensity: 0.12,
+    emissiveIntensity: 0.32,
   });
+  /** Hot hazard — emissive boosted for UnrealBloom. */
   readonly hazard = softMat(0xffffff, {
-    roughness: 0.32,
-    metalness: 0.18,
+    roughness: 0.24,
+    metalness: 0.26,
     map: this.stripeHot,
     emissive: Palette.hazard,
     emissiveMap: this.stripeHot,
-    emissiveIntensity: 0.9,
+    emissiveIntensity: 1.85,
   });
   readonly hazardWarn = softMat(0xffffff, {
-    roughness: 0.34,
-    metalness: 0.12,
+    roughness: 0.26,
+    metalness: 0.2,
     map: this.stripeWarn,
     emissive: Palette.sun,
     emissiveMap: this.stripeWarn,
-    emissiveIntensity: 0.75,
+    emissiveIntensity: 1.65,
   });
   readonly metal = softMat(Palette.metal, {
-    roughness: 0.25,
-    metalness: 0.85,
+    roughness: 0.22,
+    metalness: 0.9,
   });
   readonly wood = softMat(Palette.wood, {
-    roughness: 0.72,
-    metalness: 0.02,
+    roughness: 0.68,
+    metalness: 0.04,
   });
   readonly finish = softMat(Palette.sun, {
-    roughness: 0.22,
-    metalness: 0.2,
+    roughness: 0.16,
+    metalness: 0.28,
     emissive: Palette.sun,
-    emissiveIntensity: 0.55,
+    emissiveIntensity: 1.05,
   });
   readonly water = new THREE.MeshStandardMaterial({
     color: Palette.water,
-    roughness: 0.15,
-    metalness: 0.35,
+    roughness: 0.08,
+    metalness: 0.48,
     transparent: true,
-    opacity: 0.82,
+    opacity: 0.76,
+  });
+  /** Contrasting rim lip on pads. */
+  readonly rim = softMat(0xfff6e8, {
+    roughness: 0.28,
+    metalness: 0.22,
+    emissive: 0xffe8c8,
+    emissiveIntensity: 0.55,
+  });
+  /** Darker underside skirt — reads thickness without a second light pass. */
+  readonly underside = softMat(0x122028, {
+    roughness: 0.82,
+    metalness: 0.1,
+    emissive: Palette.deepTeal,
+    emissiveIntensity: 0.18,
   });
   readonly trim = softMat(0xffffff, {
-    roughness: 0.4,
-    metalness: 0.1,
+    roughness: 0.32,
+    metalness: 0.14,
     emissive: 0xffffff,
-    emissiveIntensity: 0.15,
+    emissiveIntensity: 0.4,
   });
   readonly neonLime = softMat(Palette.lime, {
-    roughness: 0.2,
-    metalness: 0.35,
+    roughness: 0.12,
+    metalness: 0.42,
     emissive: Palette.lime,
-    emissiveIntensity: 1.6,
+    emissiveIntensity: 2.55,
   });
   readonly neonHot = softMat(Palette.hot, {
-    roughness: 0.2,
-    metalness: 0.35,
+    roughness: 0.12,
+    metalness: 0.42,
     emissive: Palette.hot,
-    emissiveIntensity: 1.5,
+    emissiveIntensity: 2.45,
   });
   readonly neonCyan = softMat(Palette.teal, {
-    roughness: 0.22,
-    metalness: 0.3,
+    roughness: 0.14,
+    metalness: 0.4,
     emissive: Palette.teal,
-    emissiveIntensity: 1.45,
+    emissiveIntensity: 2.35,
   });
   readonly conveyor = softMat(0xffffff, {
-    roughness: 0.55,
-    metalness: 0.2,
+    roughness: 0.48,
+    metalness: 0.26,
     map: this.conveyorMap,
     emissive: Palette.teal,
-    emissiveIntensity: 0.28,
+    emissiveIntensity: 0.62,
   });
   readonly safe = softMat(Palette.safe, {
-    roughness: 0.35,
-    metalness: 0.05,
+    roughness: 0.28,
+    metalness: 0.08,
     emissive: Palette.safe,
-    emissiveIntensity: 0.22,
+    emissiveIntensity: 0.48,
+  });
+  /** Matte rubber / candy shell for hammer heads & roller tips. */
+  readonly rubberHot = softMat(Palette.hot, {
+    roughness: 0.52,
+    metalness: 0.06,
+    emissive: Palette.hot,
+    emissiveIntensity: 0.55,
+  });
+  readonly rubberCyan = softMat(Palette.teal, {
+    roughness: 0.5,
+    metalness: 0.06,
+    emissive: Palette.teal,
+    emissiveIntensity: 0.48,
+  });
+  readonly rubberLime = softMat(Palette.lime, {
+    roughness: 0.48,
+    metalness: 0.05,
+    emissive: Palette.lime,
+    emissiveIntensity: 0.5,
   });
   readonly bannerHot = softMat(Palette.hot, {
-    roughness: 0.45,
-    metalness: 0.05,
+    roughness: 0.4,
+    metalness: 0.08,
     emissive: Palette.hot,
-    emissiveIntensity: 0.45,
+    emissiveIntensity: 0.9,
     side: THREE.DoubleSide,
   });
   readonly bannerLime = softMat(Palette.lime, {
-    roughness: 0.45,
-    metalness: 0.05,
+    roughness: 0.4,
+    metalness: 0.08,
     emissive: Palette.lime,
-    emissiveIntensity: 0.45,
+    emissiveIntensity: 0.9,
     side: THREE.DoubleSide,
   });
 
   constructor() {
-    this.hazard.map?.repeat.set(2.5, 1.2);
-    this.hazard.emissiveMap?.repeat.set(2.5, 1.2);
-    this.hazardWarn.map?.repeat.set(2.2, 1.1);
-    this.hazardWarn.emissiveMap?.repeat.set(2.2, 1.1);
+    this.hazard.map?.repeat.set(3.2, 1.4);
+    this.hazard.emissiveMap?.repeat.set(3.2, 1.4);
+    this.hazardWarn.map?.repeat.set(2.8, 1.25);
+    this.hazardWarn.emissiveMap?.repeat.set(2.8, 1.25);
   }
 
   /** Idle material juice (conveyor tread shimmer). */

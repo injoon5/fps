@@ -1,5 +1,5 @@
 import * as THREE from "three";
-import { Palette } from "./config";
+import { CourseBounds, Palette } from "./config";
 
 function makeSparkleTexture(): THREE.CanvasTexture {
   const c = document.createElement("canvas");
@@ -52,41 +52,46 @@ export function buildEnvironment(scene: THREE.Scene): {
 } {
   const disposables: Array<{ dispose: () => void }> = [];
 
-  // Match fog to horizon so distant course melts into stadium void
+  // Linear fog (matches RendererPipeline) — mid-course readable, sky not washed
   scene.background = null;
-  scene.fog = new THREE.FogExp2(Palette.skyHorizon, 0.0095);
+  scene.fog = new THREE.Fog(Palette.skyHorizon, 42, 220);
 
-  const hemi = new THREE.HemisphereLight(Palette.skyTop, Palette.deepTeal, 0.95);
+  // Lower hemi so directional shadows actually read on pads
+  const hemi = new THREE.HemisphereLight(Palette.skyTop, Palette.deepTeal, 0.48);
   scene.add(hemi);
 
-  const sun = new THREE.DirectionalLight(0xffe2b8, 2.55);
-  sun.position.set(48, 72, 18);
+  // Fixed course-wide soft shadows: cover z≈10 → −210 along the gauntlet
+  const sun = new THREE.DirectionalLight(0xffe8c8, 3.15);
+  const sunOffset = new THREE.Vector3(56, 88, 42);
+  sun.position.set(sunOffset.x, sunOffset.y, CourseBounds.zCenter + sunOffset.z);
   sun.castShadow = true;
-  sun.shadow.mapSize.set(2048, 2048);
-  sun.shadow.camera.near = 2;
-  sun.shadow.camera.far = 180;
-  sun.shadow.camera.left = -42;
-  sun.shadow.camera.right = 42;
-  sun.shadow.camera.top = 42;
-  sun.shadow.camera.bottom = -42;
-  sun.shadow.bias = -0.00018;
-  sun.shadow.normalBias = 0.035;
-  sun.shadow.radius = 2.25;
-  sun.target.position.set(0, 0, -60);
+  sun.shadow.mapSize.set(4096, 4096);
+  sun.shadow.camera.near = 5;
+  sun.shadow.camera.far = 320;
+  // Ortho frustum sized for full course length in light space
+  sun.shadow.camera.left = -70;
+  sun.shadow.camera.right = 70;
+  sun.shadow.camera.top = 150;
+  sun.shadow.camera.bottom = -150;
+  sun.shadow.bias = -0.00012;
+  sun.shadow.normalBias = 0.04;
+  sun.shadow.radius = 3.2;
+  sun.target.position.set(0, 0, CourseBounds.zCenter);
+  sun.shadow.camera.updateProjectionMatrix();
   scene.add(sun);
   scene.add(sun.target);
 
   // Soft bounce fill — teal from below/side for contact read on jelly
-  const fill = new THREE.DirectionalLight(Palette.teal, 0.42);
+  const fill = new THREE.DirectionalLight(Palette.teal, 0.28);
   fill.position.set(-38, 16, -28);
   scene.add(fill);
 
-  const rim = new THREE.DirectionalLight(Palette.hot, 0.32);
+  const rim = new THREE.DirectionalLight(Palette.hot, 0.22);
   rim.position.set(12, 10, -55);
   scene.add(rim);
 
   // Warm ground bounce so underside of platforms aren't pure black
-  const bounce = new THREE.DirectionalLight(Palette.sun, 0.22);
+  const bounce = new THREE.DirectionalLight(Palette.sun, 0.16);
   bounce.position.set(0, -20, -40);
   scene.add(bounce);
 
@@ -99,10 +104,10 @@ export function buildEnvironment(scene: THREE.Scene): {
     fog: false,
     uniforms: {
       topColor: { value: new THREE.Color(Palette.skyTop) },
-      midColor: { value: new THREE.Color(0xffd4a8) },
+      midColor: { value: new THREE.Color(0xffc090) },
       bottomColor: { value: new THREE.Color(Palette.deepTeal) },
       hazeColor: { value: new THREE.Color(Palette.skyHorizon) },
-      sunDir: { value: new THREE.Vector3(0.35, 0.62, 0.22).normalize() },
+      sunDir: { value: sunOffset.clone().normalize() },
       time: { value: 0 },
     },
     vertexShader: /* glsl */ `
@@ -137,25 +142,25 @@ export function buildEnvironment(scene: THREE.Scene): {
         col = mix(col, midColor, smoothstep(0.05, 0.42, h));
         col = mix(col, topColor, smoothstep(0.35, 0.95, h));
 
-        // Soft horizon band — stadium void read
+        // Soft horizon band — keep saturation so sky isn't washed milk
         float horizon = exp(-pow(h * 4.5, 2.0));
-        col = mix(col, hazeColor * 1.08, horizon * 0.55);
+        col = mix(col, hazeColor * 1.12, horizon * 0.42);
 
         // Sun disc + corona
         float sunDot = max(dot(dir, sunDir), 0.0);
-        float disc = pow(sunDot, 420.0);
-        float corona = pow(sunDot, 18.0);
-        float glow = pow(sunDot, 4.5);
-        col += vec3(1.0, 0.92, 0.72) * disc * 2.2;
-        col += vec3(1.0, 0.78, 0.45) * corona * 0.85;
-        col += vec3(1.0, 0.7, 0.4) * glow * 0.28;
+        float disc = pow(sunDot, 380.0);
+        float corona = pow(sunDot, 16.0);
+        float glow = pow(sunDot, 4.0);
+        col += vec3(1.0, 0.94, 0.78) * disc * 2.6;
+        col += vec3(1.0, 0.8, 0.48) * corona * 1.05;
+        col += vec3(1.0, 0.72, 0.42) * glow * 0.38;
 
         // Subtle atmospheric grain (cheap stars / dust)
         float grain = hash(dir.xz * 80.0 + time * 0.01);
-        col += vec3(grain) * 0.025 * smoothstep(0.2, 0.9, h);
+        col += vec3(grain) * 0.03 * smoothstep(0.2, 0.9, h);
 
         // Lower void vignette into deep teal
-        col = mix(col, bottomColor, smoothstep(0.05, -0.55, h) * 0.65);
+        col = mix(col, bottomColor, smoothstep(0.05, -0.55, h) * 0.55);
 
         gl_FragColor = vec4(col, 1.0);
       }
@@ -171,13 +176,13 @@ export function buildEnvironment(scene: THREE.Scene): {
   for (let i = 0; i < 5; i++) {
     const ringMat = new THREE.MeshStandardMaterial({
       color: i % 2 === 0 ? Palette.hot : Palette.lime,
-      roughness: 0.38,
-      metalness: 0.28,
+      roughness: 0.32,
+      metalness: 0.35,
       emissive: i % 2 === 0 ? Palette.hot : Palette.lime,
-      emissiveIntensity: 0.28,
+      emissiveIntensity: 0.55,
     });
     disposables.push(ringMat);
-    const ringGeo = new THREE.TorusGeometry(52 + i * 20, 0.95 + i * 0.08, 10, 96);
+    const ringGeo = new THREE.TorusGeometry(52 + i * 20, 1.05 + i * 0.1, 12, 112);
     disposables.push(ringGeo);
     const ring = new THREE.Mesh(ringGeo, ringMat);
     ring.rotation.x = Math.PI / 2;
@@ -194,7 +199,7 @@ export function buildEnvironment(scene: THREE.Scene): {
     const hazeMat = new THREE.MeshBasicMaterial({
       color: i % 2 === 0 ? Palette.skyHorizon : Palette.teal,
       transparent: true,
-      opacity: 0.045,
+      opacity: 0.04,
       depthWrite: false,
       fog: false,
       blending: THREE.AdditiveBlending,
@@ -211,7 +216,7 @@ export function buildEnvironment(scene: THREE.Scene): {
   scene.add(hazeGroup);
 
   // ——— Confetti ———
-  const confettiCount = 520;
+  const confettiCount = 920;
   const confettiGeo = new THREE.BufferGeometry();
   disposables.push(confettiGeo);
   const positions = new Float32Array(confettiCount * 3);
@@ -243,11 +248,11 @@ export function buildEnvironment(scene: THREE.Scene): {
   const confettiTex = makeConfettiTexture();
   disposables.push(confettiTex);
   const confettiMat = new THREE.PointsMaterial({
-    size: 0.48,
+    size: 0.58,
     map: confettiTex,
     vertexColors: true,
     transparent: true,
-    opacity: 0.9,
+    opacity: 0.95,
     depthWrite: false,
     sizeAttenuation: true,
     alphaTest: 0.08,
@@ -258,16 +263,16 @@ export function buildEnvironment(scene: THREE.Scene): {
   scene.add(confetti);
 
   // ——— Sparkles (additive twinkles) ———
-  const sparkleCount = 180;
+  const sparkleCount = 420;
   const sparkleGeo = new THREE.BufferGeometry();
   disposables.push(sparkleGeo);
   const sPos = new Float32Array(sparkleCount * 3);
   const sCol = new Float32Array(sparkleCount * 3);
   const sPhase = new Float32Array(sparkleCount);
   for (let i = 0; i < sparkleCount; i++) {
-    sPos[i * 3] = (Math.random() - 0.5) * 120;
-    sPos[i * 3 + 1] = Math.random() * 28 + 1;
-    sPos[i * 3 + 2] = (Math.random() - 0.5) * 180 - 30;
+    sPos[i * 3] = (Math.random() - 0.5) * 140;
+    sPos[i * 3 + 1] = Math.random() * 32 + 1;
+    sPos[i * 3 + 2] = (Math.random() - 0.5) * 220 - 30;
     const c = palette[(i * 3) % palette.length]!;
     sCol[i * 3] = c.r;
     sCol[i * 3 + 1] = c.g;
@@ -280,11 +285,11 @@ export function buildEnvironment(scene: THREE.Scene): {
   const sparkleTex = makeSparkleTexture();
   disposables.push(sparkleTex);
   const sparkleMat = new THREE.PointsMaterial({
-    size: 0.85,
+    size: 1.15,
     map: sparkleTex,
     vertexColors: true,
     transparent: true,
-    opacity: 0.75,
+    opacity: 0.85,
     depthWrite: false,
     blending: THREE.AdditiveBlending,
     sizeAttenuation: true,
@@ -294,7 +299,7 @@ export function buildEnvironment(scene: THREE.Scene): {
   sparkles.frustumCulled = false;
   scene.add(sparkles);
 
-  // ——— Water void ———
+  // ——— Clearer water void with hard specular glints ———
   const waterGeo = new THREE.CircleGeometry(220, 96);
   disposables.push(waterGeo);
   const waterMat = new THREE.ShaderMaterial({
@@ -303,9 +308,10 @@ export function buildEnvironment(scene: THREE.Scene): {
     uniforms: {
       time: { value: 0 },
       deepColor: { value: new THREE.Color(Palette.void) },
-      waterColor: { value: new THREE.Color(Palette.water) },
-      foamColor: { value: new THREE.Color(Palette.teal) },
-      sunDir: { value: new THREE.Vector3(0.35, 0.62, 0.22).normalize() },
+      waterColor: { value: new THREE.Color(0x1490a8) },
+      foamColor: { value: new THREE.Color(Palette.foam) },
+      glintColor: { value: new THREE.Color(0xfff2c8) },
+      sunDir: { value: sunOffset.clone().normalize() },
     },
     vertexShader: /* glsl */ `
       uniform float time;
@@ -315,9 +321,10 @@ export function buildEnvironment(scene: THREE.Scene): {
       void main() {
         vUv = uv;
         vec3 p = position;
-        float w1 = sin(p.x * 0.08 + time * 0.9) * 0.18;
-        float w2 = cos(p.y * 0.11 + time * 1.15) * 0.12;
-        p.z += w1 + w2;
+        float w1 = sin(p.x * 0.09 + time * 1.05) * 0.22;
+        float w2 = cos(p.y * 0.13 + time * 1.35) * 0.14;
+        float w3 = sin((p.x + p.y) * 0.05 + time * 0.7) * 0.1;
+        p.z += w1 + w2 + w3;
         vWave = w1 + w2;
         vec4 world = modelMatrix * vec4(p, 1.0);
         vWorldPos = world.xyz;
@@ -329,6 +336,7 @@ export function buildEnvironment(scene: THREE.Scene): {
       uniform vec3 deepColor;
       uniform vec3 waterColor;
       uniform vec3 foamColor;
+      uniform vec3 glintColor;
       uniform vec3 sunDir;
       varying vec2 vUv;
       varying vec3 vWorldPos;
@@ -349,21 +357,27 @@ export function buildEnvironment(scene: THREE.Scene): {
       }
 
       void main() {
-        vec2 uv = vWorldPos.xz * 0.035;
-        float n1 = noise(uv * 3.0 + time * 0.15);
-        float n2 = noise(uv * 7.0 - time * 0.22);
-        float caustic = pow(n1 * n2 * 1.6, 2.2);
+        vec2 uv = vWorldPos.xz * 0.028;
+        float n1 = noise(uv * 2.8 + time * 0.18);
+        float n2 = noise(uv * 8.5 - time * 0.28);
+        float n3 = noise(uv * 18.0 + time * 0.4);
+        float caustic = pow(n1 * n2 * 1.75, 1.85);
 
         float radial = length(vUv - 0.5) * 2.0;
-        vec3 col = mix(waterColor, deepColor, smoothstep(0.15, 1.05, radial));
-        col += foamColor * caustic * 0.35;
-        col += foamColor * (0.08 + vWave * 0.25);
+        // Clearer turquoise — less muddy void mix
+        vec3 col = mix(waterColor * 1.15, deepColor, smoothstep(0.25, 1.1, radial) * 0.72);
+        col += foamColor * caustic * 0.55;
+        col += foamColor * (0.06 + vWave * 0.35);
+        col += waterColor * n3 * 0.12;
 
-        // Specular sun glint strip
-        float glint = pow(max(dot(normalize(vec3(n1 - 0.5, 0.85, n2 - 0.5)), sunDir), 0.0), 48.0);
-        col += vec3(1.0, 0.92, 0.7) * glint * 0.55;
+        // Specular sun glints — sharp sparkles on wave normals
+        vec3 nrm = normalize(vec3((n1 - 0.5) * 1.4, 0.72, (n2 - 0.5) * 1.4));
+        float glint = pow(max(dot(nrm, sunDir), 0.0), 72.0);
+        float spark = pow(max(dot(nrm, sunDir), 0.0), 220.0);
+        col += glintColor * glint * 0.95;
+        col += vec3(1.0) * spark * 1.4;
 
-        float alpha = mix(0.92, 0.78, caustic) * smoothstep(1.2, 0.4, radial);
+        float alpha = mix(0.88, 0.7, caustic) * smoothstep(1.25, 0.35, radial);
         gl_FragColor = vec4(col, alpha);
       }
     `,
@@ -377,84 +391,71 @@ export function buildEnvironment(scene: THREE.Scene): {
 
   // Soft caustic glow planes under course
   const glowPlanes: THREE.Mesh[] = [];
-  for (let i = 0; i < 8; i++) {
+  for (let i = 0; i < 10; i++) {
     const gMat = new THREE.MeshBasicMaterial({
       color: i % 2 === 0 ? Palette.teal : Palette.lime,
       transparent: true,
-      opacity: 0.05,
+      opacity: 0.06,
       depthWrite: false,
       blending: THREE.AdditiveBlending,
     });
     disposables.push(gMat);
-    const gGeo = new THREE.PlaneGeometry(14, 14);
+    const gGeo = new THREE.PlaneGeometry(16, 16);
     disposables.push(gGeo);
     const g = new THREE.Mesh(gGeo, gMat);
     g.rotation.x = -Math.PI / 2;
-    g.position.set((i - 3.5) * 20, -7.65, ((i % 3) - 1) * 35 - 40);
+    g.position.set((i - 4.5) * 18, -7.65, -20 - i * 18);
     scene.add(g);
     glowPlanes.push(g);
   }
-
-  const followTmp = new THREE.Vector3();
-  const shadowCenter = new THREE.Vector3(0, 0, -60);
 
   return {
     sun,
     hemi,
     water,
-    update(t: number, follow?: THREE.Vector3) {
+    update(t: number, _follow?: THREE.Vector3) {
       skyMat.uniforms.time!.value = t;
       waterMat.uniforms.time!.value = t;
 
-      // Shadow frustum tracks player so contact shadows stay sharp
-      if (follow) {
-        shadowCenter.lerp(
-          followTmp.set(follow.x, 0, follow.z),
-          0.08,
-        );
-        sun.target.position.set(shadowCenter.x, 0, shadowCenter.z);
-        sun.position.set(
-          shadowCenter.x + 48,
-          72,
-          shadowCenter.z + 18,
-        );
-        sun.target.updateMatrixWorld();
-      }
+      // Keep shadow frustum locked on full course (z 10 → −210) — do not chase player
+      sun.target.position.set(0, 0, CourseBounds.zCenter);
+      sun.position.set(sunOffset.x, sunOffset.y, CourseBounds.zCenter + sunOffset.z);
+      sun.target.updateMatrixWorld();
 
-      const pos = confetti.geometry.attributes.position as THREE.BufferAttribute;
+      const posAttr = confetti.geometry.attributes.position as THREE.BufferAttribute;
       for (let i = 0; i < confettiCount; i++) {
         const spd = speeds[i]!;
         const ph = phases[i]!;
-        let y = pos.getY(i) - 0.012 * spd * (1 + (i % 5) * 0.15);
-        let x = pos.getX(i) + Math.sin(t * 0.7 + ph) * 0.008 * spd;
-        let z = pos.getZ(i) + Math.cos(t * 0.55 + ph) * 0.006;
+        let y = posAttr.getY(i) - 0.012 * spd * (1 + (i % 5) * 0.15);
+        let x = posAttr.getX(i) + Math.sin(t * 0.7 + ph) * 0.008 * spd;
+        let z = posAttr.getZ(i) + Math.cos(t * 0.55 + ph) * 0.006;
         if (y < 1.5) {
           y = 62 + Math.random() * 12;
           x = (Math.random() - 0.5) * 200;
           z = (Math.random() - 0.5) * 260 - 40;
         }
-        pos.setXYZ(i, x, y, z);
+        posAttr.setXYZ(i, x, y, z);
       }
-      pos.needsUpdate = true;
-      confettiMat.size = 0.42 + Math.sin(t * 2.2) * 0.04;
+      posAttr.needsUpdate = true;
+      confettiMat.size = 0.5 + Math.sin(t * 2.2) * 0.06;
 
       const sp = sparkles.geometry.attributes.position as THREE.BufferAttribute;
       for (let i = 0; i < sparkleCount; i++) {
         const ph = sPhase[i]!;
-        let y = sp.getY(i) + Math.sin(t * 1.2 + ph) * 0.01;
-        let x = sp.getX(i) + Math.cos(t * 0.9 + ph) * 0.012;
-        if (y < 0.5 || y > 32) y = 2 + Math.random() * 24;
+        let y = sp.getY(i) + Math.sin(t * 1.2 + ph) * 0.012;
+        let x = sp.getX(i) + Math.cos(t * 0.9 + ph) * 0.014;
+        if (y < 0.5 || y > 34) y = 2 + Math.random() * 26;
         sp.setXYZ(i, x, y, sp.getZ(i));
       }
       sp.needsUpdate = true;
-      sparkleMat.opacity = 0.45 + Math.sin(t * 2.8) * 0.25;
-      sparkleMat.size = 0.7 + Math.sin(t * 4.1) * 0.18;
+      sparkleMat.opacity = 0.55 + Math.sin(t * 2.8) * 0.3;
+      sparkleMat.size = 0.95 + Math.sin(t * 4.1) * 0.28;
 
       ringGroup.rotation.y = t * 0.045;
       hazeGroup.rotation.y = -t * 0.02;
       for (let i = 0; i < glowPlanes.length; i++) {
         const mat = glowPlanes[i]!.material as THREE.MeshBasicMaterial;
-        mat.opacity = 0.035 + Math.sin(t * 1.4 + i * 0.9) * 0.028;
+        mat.opacity = 0.04 + Math.sin(t * 1.4 + i * 0.9) * 0.032;
         glowPlanes[i]!.scale.setScalar(1 + Math.sin(t * 0.8 + i) * 0.08);
       }
       water.position.y = -8 + Math.sin(t * 0.65) * 0.1;
