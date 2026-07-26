@@ -30,9 +30,9 @@ export const GameConfig = {
   gravity: -28,
   playerRadius: 0.42,
   playerHeight: 1.7,
-  walkSpeed: 7.4,
-  sprintSpeed: 11.8,
-  jumpSpeed: 11.6,
+  walkSpeed: 5.2,
+  sprintSpeed: 8.0,
+  jumpSpeed: 10.4,
   /** Ground accel toward wish (1/s exponential). Higher = snappier. */
   groundAccel: 22,
   /** Ground stop/friction when no wish (1/s). */
