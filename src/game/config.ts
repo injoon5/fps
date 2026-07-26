@@ -1,0 +1,36 @@
+/** Shared visual tokens — tropical candy stadium, not purple AI sludge. */
+export const Palette = {
+  void: 0x04100e,
+  deepTeal: 0x0a241f,
+  foam: 0xf4fff0,
+  lime: 0x7cff3a,
+  hot: 0xff3d6e,
+  sun: 0xffc857,
+  teal: 0x1ad4b0,
+  skyTop: 0x4ec9ff,
+  skyHorizon: 0xffb07a,
+  water: 0x0d3d4a,
+  platform: 0xff6b9d,
+  platformAlt: 0x5ce1ff,
+  hazard: 0xff3d6e,
+  safe: 0x7cff3a,
+  wood: 0xd4a574,
+  metal: 0xb8c4cc,
+} as const;
+
+export const GameConfig = {
+  gravity: -28,
+  playerRadius: 0.42,
+  playerHeight: 1.7,
+  walkSpeed: 7.2,
+  sprintSpeed: 11.5,
+  jumpSpeed: 11.2,
+  airControl: 0.55,
+  mouseSensitivity: 0.0022,
+  fov: 78,
+  sprintFov: 88,
+  headBobAmp: 0.045,
+  headBobFreq: 11,
+  fallKillY: -12,
+  checkpointGrace: 0.35,
+} as const;

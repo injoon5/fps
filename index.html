@@ -1,0 +1,50 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+    <meta name="description" content="Fall Rush — first-person obstacle chaos. Survive the gauntlet." />
+    <title>FALL RUSH</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Outfit:wght@400;600;800&display=swap" rel="stylesheet" />
+  </head>
+  <body>
+    <div id="app">
+      <canvas id="game-canvas"></canvas>
+      <div id="hud" class="hud hidden" aria-live="polite">
+        <div class="hud-top">
+          <div class="timer" id="timer">00:00.00</div>
+          <div class="checkpoint" id="checkpoint">START</div>
+        </div>
+        <div class="crosshair" aria-hidden="true"></div>
+        <div class="hud-bottom">
+          <div class="speed" id="speed">0 <span>m/s</span></div>
+          <div class="hint">WASD move · Space jump · Shift sprint · Esc pause</div>
+        </div>
+      </div>
+      <div id="overlay" class="overlay">
+        <div class="overlay-bg" aria-hidden="true"></div>
+        <div class="overlay-content">
+          <p class="eyebrow">FIRST-PERSON GAUNTLET</p>
+          <h1 class="logo">FALL<br />RUSH</h1>
+          <p class="tagline">One path. Zero mercy. Don't look down.</p>
+          <button id="start-btn" class="cta" type="button">CLICK TO PLAY</button>
+          <p class="controls-note">Pointer lock · Fullscreen recommended</p>
+        </div>
+      </div>
+      <div id="finish" class="overlay hidden">
+        <div class="overlay-bg" aria-hidden="true"></div>
+        <div class="overlay-content">
+          <p class="eyebrow">COURSE COMPLETE</p>
+          <h2 class="logo finish-title">QUALIFIED!</h2>
+          <p class="finish-time" id="finish-time">00:00.00</p>
+          <button id="retry-btn" class="cta" type="button">RUN AGAIN</button>
+        </div>
+      </div>
+      <div id="damage-vignette" aria-hidden="true"></div>
+    </div>
+    <script type="module" src="/src/main.ts"></script>
+  </body>
+</html>
