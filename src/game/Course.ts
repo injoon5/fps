@@ -1290,8 +1290,8 @@ export function buildCourse(
         bp.setXYZ(i, x, y, z);
       }
       bp.needsUpdate = true;
-      burstMat.size = 0.55 + Math.sin(t * 3.5) * 0.22;
-      burstMat.opacity = 0.75 + Math.sin(t * 2.1) * 0.2;
+      burstMat.size = 0.4 + Math.sin(t * 3.5) * 0.08;
+      burstMat.opacity = 0.45 + Math.sin(t * 2.1) * 0.08;
 
       for (let i = 0; i < bannerPivots.length; i++) {
         const pivot = bannerPivots[i]!;
