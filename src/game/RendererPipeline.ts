@@ -69,29 +69,29 @@ export class RendererPipeline {
     this.composer.addPass(normalPass);
 
     this.ssao = new SSAOEffect(this.camera, normalPass.texture, {
-      samples: 10,
+      samples: 14,
       rings: 5,
-      intensity: 1.45,
-      radius: 0.11,
-      bias: 0.025,
-      fade: 0.018,
-      luminanceInfluence: 0.28,
-      minRadiusScale: 0.12,
+      intensity: 1.95,
+      radius: 0.14,
+      bias: 0.02,
+      fade: 0.012,
+      luminanceInfluence: 0.18,
+      minRadiusScale: 0.08,
       worldDistanceThreshold: 70,
       worldDistanceFalloff: 22,
-      worldProximityThreshold: 1.8,
-      worldProximityFalloff: 0.5,
-      resolutionScale: 0.55,
+      worldProximityThreshold: 1.4,
+      worldProximityFalloff: 0.4,
+      resolutionScale: 0.65,
       depthAwareUpsampling: true,
       color: new THREE.Color(Palette.deepTeal),
     });
 
     this.bloom = new BloomEffect({
       intensity: 0.72,
-      luminanceThreshold: 0.55,
-      luminanceSmoothing: 0.28,
+      luminanceThreshold: 0.58,
+      luminanceSmoothing: 0.24,
       mipmapBlur: true,
-      radius: 0.58,
+      radius: 0.55,
     });
 
     this.chromatic = new ChromaticAberrationEffect({
@@ -101,23 +101,23 @@ export class RendererPipeline {
     });
 
     const vignette = new VignetteEffect({
-      darkness: 0.32,
-      offset: 0.34,
+      darkness: 0.36,
+      offset: 0.32,
     });
 
     const tone = new ToneMappingEffect({
       mode: ToneMappingMode.ACES_FILMIC,
-      whitePoint: 4.2,
-      middleGrey: 0.26,
+      whitePoint: 3.85,
+      middleGrey: 0.24,
     });
 
     const grade = new HueSaturationEffect({
-      saturation: 0.2,
+      saturation: 0.24,
     });
 
     const contrast = new BrightnessContrastEffect({
-      brightness: -0.01,
-      contrast: 0.14,
+      brightness: -0.04,
+      contrast: 0.26,
     });
 
     const smaa = new SMAAEffect();
@@ -142,11 +142,10 @@ export class RendererPipeline {
 
   setSpeedFx(normalizedSpeed: number): void {
     const t = THREE.MathUtils.clamp(normalizedSpeed, 0, 1);
-    this.bloom.intensity = 0.62 + t * 0.45;
+    this.bloom.intensity = 0.65 + t * 0.5;
     const aberration = 0.0002 + t * 0.001;
     this.chromatic.offset.set(aberration, aberration * 0.85);
-    // Slightly lift AO in motion so platforms read with more contact
-    this.ssao.intensity = 1.35 + t * 0.3;
+    this.ssao.intensity = 1.7 + t * 0.4;
   }
 
   setFov(fov: number): void {

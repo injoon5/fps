@@ -18,45 +18,64 @@ page.on("console", (m) => {
 const url = process.env.CAPTURE_URL ?? "http://127.0.0.1:5173/";
 await page.goto(url, { waitUntil: "networkidle", timeout: 90000 });
 await page.waitForFunction(() => !!window.__FALL_RUSH__, null, { timeout: 30000 });
-await page.waitForTimeout(2800);
+await page.waitForTimeout(2600);
 
-// 01 — title over live 3D attract (overlay is translucent)
-await page.screenshot({ path: `${OUT}/pass1-01-title.png`, type: "png" });
-await page.screenshot({ path: `${OUT}/01-title.png`, type: "png" });
+const prefix = process.env.CAPTURE_PREFIX ?? "pass2";
 
-await page.click("#start-btn");
-await page.waitForTimeout(2400);
-await page.screenshot({ path: `${OUT}/pass1-02-after-start.png`, type: "png" });
-await page.screenshot({ path: `${OUT}/02-after-start.png`, type: "png" });
+// 01 — title over live 3D attract
+await page.screenshot({ path: `${OUT}/${prefix}-01-title.png`, type: "png" });
 
-// World hero: sun-side three-quarter so soft pad shadows land on catcher
+// FP from start pad looking down-course — contact shadows on lime + pink bridge
 await page.evaluate(() => {
   const api = window.__FALL_RUSH__;
   if (!api) return;
   api.hideUi();
-  api.setCamera(16.5, 8.8, 6.5, -2, 0.2, -24);
+  // Eye height on start pad body, slight downward look toward pink bridge
+  api.setFirstPerson(0, 2.25, 2.55, 0, -0.16);
 });
 await page.waitForTimeout(2200);
-await page.screenshot({ path: `${OUT}/pass1-03-world-view.png`, type: "png" });
-await page.screenshot({ path: `${OUT}/03-world-view.png`, type: "png" });
+await page.screenshot({ path: `${OUT}/${prefix}-fp-start.png`, type: "png" });
 
-// Mid-course: hazard bloom + hex pads + water glints
+// FP near spin / candy rollers
 await page.evaluate(() => {
   const api = window.__FALL_RUSH__;
   if (!api) return;
   api.hideUi();
-  api.setCamera(13.0, 7.2, -18, -1, 0.3, -46);
+  api.setFirstPerson(0.35, 2.2, -16.2, 0.06, -0.1);
 });
 await page.waitForTimeout(2000);
-await page.screenshot({ path: `${OUT}/pass1-04-world-later.png`, type: "png" });
-await page.screenshot({ path: `${OUT}/04-world-later.png`, type: "png" });
+await page.screenshot({ path: `${OUT}/${prefix}-fp-spin.png`, type: "png" });
 
-// Debug fly
+// World three-quarter — sun-side so pad shadows land on catcher
+await page.evaluate(() => {
+  const api = window.__FALL_RUSH__;
+  if (!api) return;
+  api.hideUi();
+  api.setCamera(15.5, 8.2, 7.5, -1.5, 0.35, -22);
+});
+await page.waitForTimeout(2000);
+await page.screenshot({ path: `${OUT}/${prefix}-world.png`, type: "png" });
+
+// Finish podium spectacle
+await page.evaluate(() => {
+  const api = window.__FALL_RUSH__;
+  if (!api) return;
+  api.hideUi();
+  api.setCamera(10, 6.5, -188, 0, 3.2, -206);
+});
+await page.waitForTimeout(2000);
+await page.screenshot({ path: `${OUT}/${prefix}-finish.png`, type: "png" });
+
+// Debug fly hero — uses __FALL_RUSH__.enableDebugFly when available
 await page.evaluate(() => {
   window.__FALL_RUSH__?.enableDebugFly();
 });
-await page.waitForTimeout(4000);
-await page.screenshot({ path: `${OUT}/pass1-05-fly.png`, type: "png" });
+await page.waitForTimeout(4500);
+await page.screenshot({ path: `${OUT}/${prefix}-fly-hero.png`, type: "png" });
+
+// Extra fly beat later in path
+await page.waitForTimeout(3500);
+await page.screenshot({ path: `${OUT}/${prefix}-fly-mid.png`, type: "png" });
 
 await browser.close();
-console.log("done →", OUT);
+console.log("done →", OUT, `(${prefix}-*)`);

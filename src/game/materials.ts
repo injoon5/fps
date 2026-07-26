@@ -27,6 +27,39 @@ function softMat(
   });
 }
 
+/** Glossy candy jelly — clearcoat + sheen + mild anisotropy for wet plastic read. */
+function jellyMat(
+  color: number,
+  opts: Partial<{
+    roughness: number;
+    clearcoat: number;
+    clearcoatRoughness: number;
+    sheen: number;
+    sheenRoughness: number;
+    anisotropy: number;
+    emissiveIntensity: number;
+    metalness: number;
+  }> = {},
+): THREE.MeshPhysicalMaterial {
+  const sheenColor = new THREE.Color(color).offsetHSL(0.02, 0.05, 0.12);
+  return new THREE.MeshPhysicalMaterial({
+    color,
+    roughness: opts.roughness ?? 0.22,
+    metalness: opts.metalness ?? 0.04,
+    clearcoat: opts.clearcoat ?? 1.0,
+    clearcoatRoughness: opts.clearcoatRoughness ?? 0.14,
+    sheen: opts.sheen ?? 0.85,
+    sheenRoughness: opts.sheenRoughness ?? 0.32,
+    sheenColor,
+    anisotropy: opts.anisotropy ?? 0.55,
+    anisotropyRotation: 0.35,
+    reflectivity: 0.88,
+    envMapIntensity: 1.35,
+    emissive: color,
+    emissiveIntensity: opts.emissiveIntensity ?? 0.07,
+  });
+}
+
 /**
  * High-contrast diagonal hazard stripes — tiles cleanly for bloom-friendly danger.
  * Bright band + near-black band so emissiveMap punches through postprocessing.
@@ -117,23 +150,29 @@ export class MaterialLibrary {
   private readonly stripeWarn = makeStripeTexture("#120e04", "#ffd24a", 20);
   private readonly conveyorMap = makeConveyorTexture();
 
-  readonly jellyPink = softMat(Palette.platform, {
-    roughness: 0.34,
-    metalness: 0.06,
-    emissive: Palette.platform,
-    emissiveIntensity: 0.06,
+  readonly jellyPink = jellyMat(Palette.platform, {
+    roughness: 0.2,
+    clearcoat: 1,
+    clearcoatRoughness: 0.12,
+    sheen: 0.95,
+    anisotropy: 0.62,
+    emissiveIntensity: 0.08,
   });
-  readonly jellyCyan = softMat(Palette.platformAlt, {
-    roughness: 0.36,
-    metalness: 0.08,
-    emissive: Palette.platformAlt,
-    emissiveIntensity: 0.05,
+  readonly jellyCyan = jellyMat(Palette.platformAlt, {
+    roughness: 0.22,
+    clearcoat: 1,
+    clearcoatRoughness: 0.14,
+    sheen: 0.9,
+    anisotropy: 0.58,
+    emissiveIntensity: 0.07,
   });
-  readonly jellyLime = softMat(Palette.lime, {
-    roughness: 0.38,
-    metalness: 0.05,
-    emissive: Palette.lime,
-    emissiveIntensity: 0.1,
+  readonly jellyLime = jellyMat(Palette.lime, {
+    roughness: 0.28,
+    clearcoat: 1,
+    clearcoatRoughness: 0.18,
+    sheen: 0.88,
+    anisotropy: 0.5,
+    emissiveIntensity: 0.04,
   });
   /** Hot hazard — emissive boosted for UnrealBloom. */
   readonly hazard = softMat(0xffffff, {
@@ -160,25 +199,32 @@ export class MaterialLibrary {
     roughness: 0.68,
     metalness: 0.04,
   });
-  readonly finish = softMat(Palette.sun, {
-    roughness: 0.2,
-    metalness: 0.24,
-    emissive: Palette.sun,
-    emissiveIntensity: 0.85,
+  readonly finish = jellyMat(Palette.sun, {
+    roughness: 0.22,
+    clearcoat: 1,
+    clearcoatRoughness: 0.14,
+    sheen: 1,
+    anisotropy: 0.4,
+    emissiveIntensity: 0.42,
+    metalness: 0.1,
   });
-  readonly water = new THREE.MeshStandardMaterial({
+  readonly water = new THREE.MeshPhysicalMaterial({
     color: Palette.water,
-    roughness: 0.08,
-    metalness: 0.48,
+    roughness: 0.06,
+    metalness: 0.35,
+    clearcoat: 0.8,
+    clearcoatRoughness: 0.2,
     transparent: true,
-    opacity: 0.76,
+    opacity: 0.72,
+    transmission: 0.15,
+    thickness: 1.2,
   });
   /** Contrasting rim lip on pads. */
   readonly rim = softMat(0xffe8c0, {
-    roughness: 0.32,
-    metalness: 0.18,
+    roughness: 0.28,
+    metalness: 0.22,
     emissive: 0xffc878,
-    emissiveIntensity: 0.42,
+    emissiveIntensity: 0.48,
   });
   /** Darker underside skirt — reads thickness without a second light pass. */
   readonly underside = softMat(0x0c181c, {
@@ -197,19 +243,19 @@ export class MaterialLibrary {
     roughness: 0.1,
     metalness: 0.45,
     emissive: Palette.lime,
-    emissiveIntensity: 2.9,
+    emissiveIntensity: 3.35,
   });
   readonly neonHot = softMat(Palette.hot, {
     roughness: 0.1,
     metalness: 0.45,
     emissive: Palette.hot,
-    emissiveIntensity: 2.8,
+    emissiveIntensity: 3.4,
   });
   readonly neonCyan = softMat(Palette.teal, {
     roughness: 0.12,
     metalness: 0.42,
     emissive: Palette.teal,
-    emissiveIntensity: 2.7,
+    emissiveIntensity: 3.2,
   });
   readonly conveyor = softMat(0xffffff, {
     roughness: 0.48,
@@ -218,11 +264,13 @@ export class MaterialLibrary {
     emissive: Palette.teal,
     emissiveIntensity: 0.7,
   });
-  readonly safe = softMat(Palette.safe, {
-    roughness: 0.32,
-    metalness: 0.06,
-    emissive: Palette.safe,
-    emissiveIntensity: 0.22,
+  readonly safe = jellyMat(Palette.safe, {
+    roughness: 0.26,
+    clearcoat: 0.85,
+    clearcoatRoughness: 0.2,
+    sheen: 0.7,
+    anisotropy: 0.35,
+    emissiveIntensity: 0.28,
   });
   /** Matte rubber / candy shell for hammer heads & roller tips. */
   readonly rubberHot = softMat(Palette.hot, {
@@ -247,14 +295,14 @@ export class MaterialLibrary {
     roughness: 0.4,
     metalness: 0.08,
     emissive: Palette.hot,
-    emissiveIntensity: 0.95,
+    emissiveIntensity: 1.15,
     side: THREE.DoubleSide,
   });
   readonly bannerLime = softMat(Palette.lime, {
     roughness: 0.4,
     metalness: 0.08,
     emissive: Palette.lime,
-    emissiveIntensity: 0.95,
+    emissiveIntensity: 1.15,
     side: THREE.DoubleSide,
   });
 
@@ -265,11 +313,16 @@ export class MaterialLibrary {
     this.hazardWarn.emissiveMap?.repeat.set(2.8, 1.25);
   }
 
-  /** Idle material juice (conveyor tread shimmer). */
+  /** Idle material juice (conveyor tread shimmer + jelly anisotropy drift). */
   update(t: number): void {
     if (this.conveyor.map) {
       this.conveyor.map.offset.x = (t * 0.15) % 1;
     }
+    const drift = t * 0.35;
+    this.jellyPink.anisotropyRotation = 0.35 + Math.sin(drift) * 0.2;
+    this.jellyCyan.anisotropyRotation = 0.4 + Math.cos(drift * 0.9) * 0.18;
+    this.jellyLime.anisotropyRotation = 0.3 + Math.sin(drift * 1.1) * 0.22;
+    this.finish.anisotropyRotation = drift * 0.4;
   }
 
   dispose(): void {

@@ -13,7 +13,6 @@ function makeSparkleTexture(): THREE.CanvasTexture {
   g.addColorStop(1, "rgba(0,0,0,0)");
   ctx.fillStyle = g;
   ctx.fillRect(0, 0, 64, 64);
-  // Cross sparkle
   ctx.strokeStyle = "rgba(255,255,255,0.9)";
   ctx.lineWidth = 2;
   ctx.beginPath();
@@ -42,7 +41,39 @@ function makeConfettiTexture(): THREE.CanvasTexture {
   return tex;
 }
 
-/** Stadium sky, layered void haze, caustic water, confetti + sparkles. */
+/** Soft vertical shaft for fake god-rays (additive). */
+function makeGodRayTexture(): THREE.CanvasTexture {
+  const c = document.createElement("canvas");
+  c.width = 128;
+  c.height = 256;
+  const ctx = c.getContext("2d")!;
+  const g = ctx.createLinearGradient(64, 0, 64, 256);
+  g.addColorStop(0, "rgba(255,236,190,0)");
+  g.addColorStop(0.12, "rgba(255,230,170,0.55)");
+  g.addColorStop(0.45, "rgba(255,210,140,0.22)");
+  g.addColorStop(1, "rgba(255,180,100,0)");
+  ctx.fillStyle = g;
+  ctx.fillRect(0, 0, 128, 256);
+  const soft = ctx.createRadialGradient(64, 128, 8, 64, 128, 64);
+  soft.addColorStop(0, "rgba(255,245,210,0.5)");
+  soft.addColorStop(1, "rgba(255,245,210,0)");
+  ctx.globalCompositeOperation = "destination-in";
+  // Keep vertical falloff; horizontal soft edge via second pass
+  ctx.globalCompositeOperation = "source-over";
+  const edge = ctx.createLinearGradient(0, 0, 128, 0);
+  edge.addColorStop(0, "rgba(0,0,0,0)");
+  edge.addColorStop(0.35, "rgba(0,0,0,1)");
+  edge.addColorStop(0.65, "rgba(0,0,0,1)");
+  edge.addColorStop(1, "rgba(0,0,0,0)");
+  ctx.globalCompositeOperation = "destination-in";
+  ctx.fillStyle = edge;
+  ctx.fillRect(0, 0, 128, 256);
+  const tex = new THREE.CanvasTexture(c);
+  tex.colorSpace = THREE.SRGBColorSpace;
+  return tex;
+}
+
+/** Stadium sky, layered void haze, mirror water, god-rays, confetti + sparkles. */
 export function buildEnvironment(scene: THREE.Scene): {
   sun: THREE.DirectionalLight;
   hemi: THREE.HemisphereLight;
@@ -52,51 +83,48 @@ export function buildEnvironment(scene: THREE.Scene): {
 } {
   const disposables: Array<{ dispose: () => void }> = [];
 
-  // Linear fog (matches RendererPipeline) — mid-course readable, sky not washed
   scene.background = null;
-  scene.fog = new THREE.Fog(Palette.skyHorizon, 55, 240);
+  scene.fog = new THREE.Fog(Palette.skyHorizon, 58, 245);
 
-  // Keep hemi low so directional contact shadows punch
-  const hemi = new THREE.HemisphereLight(Palette.skyTop, Palette.deepTeal, 0.32);
+  // Keep hemi very low — FP contact shadows on lime pad + pink bridge must punch
+  const hemi = new THREE.HemisphereLight(Palette.skyTop, Palette.deepTeal, 0.14);
   scene.add(hemi);
 
-  // Fixed course-wide soft shadows: cover z≈10 → −210 along the gauntlet
-  const sun = new THREE.DirectionalLight(0xfff0d4, 2.95);
-  // Strong lateral bias so pad silhouettes stretch across water toward camera
-  const sunOffset = new THREE.Vector3(95, 78, 28);
+  // Sun from upper-right / slightly behind spawn so looking down-course (-Z)
+  // you get crisp pad contact shadows stretching across lime + pink bridge
+  const sun = new THREE.DirectionalLight(0xfff2dc, 3.85);
+  const sunOffset = new THREE.Vector3(68, 52, 55);
   sun.position.set(sunOffset.x, sunOffset.y, CourseBounds.zCenter + sunOffset.z);
   sun.castShadow = true;
   sun.shadow.mapSize.set(4096, 4096);
-  sun.shadow.camera.near = 10;
-  sun.shadow.camera.far = 360;
-  // Ortho frustum sized for full course length in light space
-  sun.shadow.camera.left = -62;
-  sun.shadow.camera.right = 62;
-  sun.shadow.camera.top = 140;
-  sun.shadow.camera.bottom = -140;
-  sun.shadow.bias = -0.00025;
-  sun.shadow.normalBias = 0.03;
-  sun.shadow.radius = 1.8;
-  sun.target.position.set(0, 0, CourseBounds.zCenter);
+  sun.shadow.camera.near = 8;
+  sun.shadow.camera.far = 380;
+  sun.shadow.camera.left = -55;
+  sun.shadow.camera.right = 55;
+  sun.shadow.camera.top = 145;
+  sun.shadow.camera.bottom = -145;
+  // Hard contacts — low radius, tight bias
+  sun.shadow.bias = -0.00012;
+  sun.shadow.normalBias = 0.018;
+  sun.shadow.radius = 0.65;
+  sun.target.position.set(0, 0.4, CourseBounds.zCenter);
   sun.shadow.camera.updateProjectionMatrix();
   scene.add(sun);
   scene.add(sun.target);
 
-  // Soft bounce fill — teal from below/side for contact read on jelly
-  const fill = new THREE.DirectionalLight(Palette.teal, 0.18);
-  fill.position.set(-38, 16, -28);
+  const fill = new THREE.DirectionalLight(Palette.teal, 0.08);
+  fill.position.set(-42, 14, -22);
   scene.add(fill);
 
-  const rim = new THREE.DirectionalLight(Palette.hot, 0.14);
-  rim.position.set(12, 10, -55);
+  const rim = new THREE.DirectionalLight(Palette.hot, 0.08);
+  rim.position.set(8, 9, -60);
   scene.add(rim);
 
-  // Warm ground bounce so underside of platforms aren't pure black
-  const bounce = new THREE.DirectionalLight(Palette.sun, 0.1);
-  bounce.position.set(0, -20, -40);
+  const bounce = new THREE.DirectionalLight(Palette.sun, 0.05);
+  bounce.position.set(0, -18, -35);
   scene.add(bounce);
 
-  // ——— Gradient sky dome (fog disabled so void stays luminous) ———
+  // ——— Gradient sky dome ———
   const skyGeo = new THREE.SphereGeometry(380, 64, 32);
   disposables.push(skyGeo);
   const skyMat = new THREE.ShaderMaterial({
@@ -143,24 +171,20 @@ export function buildEnvironment(scene: THREE.Scene): {
         col = mix(col, midColor, smoothstep(0.05, 0.42, h));
         col = mix(col, topColor, smoothstep(0.35, 0.95, h));
 
-        // Soft horizon band — keep saturation so sky isn't washed milk
         float horizon = exp(-pow(h * 4.5, 2.0));
         col = mix(col, hazeColor * 1.12, horizon * 0.42);
 
-        // Sun disc + corona
         float sunDot = max(dot(dir, sunDir), 0.0);
         float disc = pow(sunDot, 380.0);
         float corona = pow(sunDot, 16.0);
         float glow = pow(sunDot, 4.0);
-        col += vec3(1.0, 0.94, 0.78) * disc * 2.6;
-        col += vec3(1.0, 0.8, 0.48) * corona * 1.05;
-        col += vec3(1.0, 0.72, 0.42) * glow * 0.38;
+        col += vec3(1.0, 0.94, 0.78) * disc * 2.8;
+        col += vec3(1.0, 0.8, 0.48) * corona * 1.15;
+        col += vec3(1.0, 0.72, 0.42) * glow * 0.42;
 
-        // Subtle atmospheric grain (cheap stars / dust)
         float grain = hash(dir.xz * 80.0 + time * 0.01);
         col += vec3(grain) * 0.03 * smoothstep(0.2, 0.9, h);
 
-        // Lower void vignette into deep teal
         col = mix(col, bottomColor, smoothstep(0.05, -0.55, h) * 0.55);
 
         gl_FragColor = vec4(col, 1.0);
@@ -216,6 +240,45 @@ export function buildEnvironment(scene: THREE.Scene): {
   }
   scene.add(hazeGroup);
 
+  // ——— Fake volumetric god-rays toward sun ———
+  const godRayTex = makeGodRayTexture();
+  disposables.push(godRayTex);
+  const godRayGroup = new THREE.Group();
+  const godRays: THREE.Mesh[] = [];
+  const sunDirN = sunOffset.clone().normalize();
+  for (let i = 0; i < 9; i++) {
+    const rayMat = new THREE.MeshBasicMaterial({
+      map: godRayTex,
+      color: i % 2 === 0 ? 0xffe8b8 : 0xffd090,
+      transparent: true,
+      opacity: 0.07 + (i % 3) * 0.018,
+      depthWrite: false,
+      depthTest: true,
+      blending: THREE.AdditiveBlending,
+      side: THREE.DoubleSide,
+      fog: false,
+    });
+    disposables.push(rayMat);
+    const w = 6 + (i % 4) * 3.5;
+    const h = 28 + (i % 5) * 10;
+    const rayGeo = new THREE.PlaneGeometry(w, h);
+    disposables.push(rayGeo);
+    const ray = new THREE.Mesh(rayGeo, rayMat);
+    // Fan along course, angled toward sun
+    const along = -8 - i * 18;
+    const side = ((i % 3) - 1) * 7;
+    ray.position.set(side + sunDirN.x * 12, 10 + (i % 4) * 2.5, along);
+    ray.lookAt(
+      ray.position.x + sunDirN.x * 40,
+      ray.position.y + sunDirN.y * 40,
+      ray.position.z + sunDirN.z * 40,
+    );
+    ray.renderOrder = -50;
+    godRayGroup.add(ray);
+    godRays.push(ray);
+  }
+  scene.add(godRayGroup);
+
   // ——— Confetti ———
   const confettiCount = 920;
   const confettiGeo = new THREE.BufferGeometry();
@@ -263,7 +326,7 @@ export function buildEnvironment(scene: THREE.Scene): {
   confetti.frustumCulled = false;
   scene.add(confetti);
 
-  // ——— Sparkles (additive twinkles) ———
+  // ——— Sparkles ———
   const sparkleCount = 420;
   const sparkleGeo = new THREE.BufferGeometry();
   disposables.push(sparkleGeo);
@@ -300,7 +363,92 @@ export function buildEnvironment(scene: THREE.Scene): {
   sparkles.frustumCulled = false;
   scene.add(sparkles);
 
-  // ——— Clearer water void with hard specular glints ———
+  // Shared water fragment bits — mirror probe fake + animated specular
+  const waterVert = /* glsl */ `
+    uniform float time;
+    uniform float waveAmp;
+    varying vec2 vUv;
+    varying vec3 vWorldPos;
+    varying float vWave;
+    void main() {
+      vUv = uv;
+      vec3 p = position;
+      float w1 = sin(p.x * 0.09 + time * 1.05) * waveAmp;
+      float w2 = cos(p.y * 0.13 + time * 1.35) * waveAmp * 0.65;
+      float w3 = sin((p.x + p.y) * 0.05 + time * 0.7) * waveAmp * 0.45;
+      p.z += w1 + w2 + w3;
+      vWave = w1 + w2;
+      vec4 world = modelMatrix * vec4(p, 1.0);
+      vWorldPos = world.xyz;
+      gl_Position = projectionMatrix * viewMatrix * world;
+    }
+  `;
+
+  const waterFrag = /* glsl */ `
+    uniform float time;
+    uniform vec3 deepColor;
+    uniform vec3 waterColor;
+    uniform vec3 foamColor;
+    uniform vec3 glintColor;
+    uniform vec3 horizonColor;
+    uniform vec3 skyTopColor;
+    uniform vec3 sunDir;
+    uniform float opacityScale;
+    varying vec2 vUv;
+    varying vec3 vWorldPos;
+    varying float vWave;
+
+    float hash(vec2 p) {
+      return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453);
+    }
+    float noise(vec2 p) {
+      vec2 i = floor(p);
+      vec2 f = fract(p);
+      float a = hash(i);
+      float b = hash(i + vec2(1.0, 0.0));
+      float c = hash(i + vec2(0.0, 1.0));
+      float d = hash(i + vec2(1.0, 1.0));
+      vec2 u = f * f * (3.0 - 2.0 * f);
+      return mix(a, b, u.x) + (c - a) * u.y * (1.0 - u.x) + (d - b) * u.x * u.y;
+    }
+
+    void main() {
+      vec2 uv = vWorldPos.xz * 0.028;
+      float n1 = noise(uv * 2.8 + time * 0.18);
+      float n2 = noise(uv * 8.5 - time * 0.28);
+      float n3 = noise(uv * 18.0 + time * 0.4);
+      float caustic = pow(n1 * n2 * 1.75, 1.85);
+
+      float radial = length(vUv - 0.5) * 2.0;
+      vec3 col = mix(waterColor * 1.2, deepColor, smoothstep(0.22, 1.05, radial) * 0.78);
+      col += foamColor * caustic * 0.48;
+      col += foamColor * (0.05 + vWave * 0.4);
+      col += waterColor * n3 * 0.1;
+
+      // Fake reflection probe: view-dependent sky mirror
+      vec3 nrm = normalize(vec3((n1 - 0.5) * 1.55, 0.68, (n2 - 0.5) * 1.55));
+      vec3 viewDir = normalize(cameraPosition - vWorldPos);
+      vec3 refl = reflect(-viewDir, nrm);
+      float skyT = clamp(refl.y * 0.55 + 0.48, 0.0, 1.0);
+      vec3 skyCol = mix(horizonColor, skyTopColor, skyT);
+      skyCol = mix(skyCol, glintColor, pow(max(dot(refl, sunDir), 0.0), 12.0) * 0.55);
+      float fresnel = pow(1.0 - max(dot(nrm, viewDir), 0.0), 3.2);
+      col = mix(col, skyCol, fresnel * 0.62);
+
+      // Animated specular bands
+      float glint = pow(max(dot(nrm, sunDir), 0.0), 64.0);
+      float spark = pow(max(dot(nrm, sunDir), 0.0), 210.0);
+      float band = pow(max(sin(vWorldPos.x * 0.35 + vWorldPos.z * 0.22 + time * 1.8), 0.0), 18.0);
+      col += glintColor * glint * 1.05;
+      col += vec3(1.0) * spark * 1.55;
+      col += glintColor * band * fresnel * 0.35;
+
+      float alpha = mix(0.9, 0.68, caustic) * smoothstep(1.25, 0.32, radial) * opacityScale;
+      gl_FragColor = vec4(col, alpha);
+    }
+  `;
+
+  // ——— Primary water ———
   const waterGeo = new THREE.CircleGeometry(220, 96);
   disposables.push(waterGeo);
   const waterMat = new THREE.ShaderMaterial({
@@ -308,80 +456,18 @@ export function buildEnvironment(scene: THREE.Scene): {
     depthWrite: false,
     uniforms: {
       time: { value: 0 },
-      deepColor: { value: new THREE.Color(Palette.void) },
-      waterColor: { value: new THREE.Color(0x1ab0c8) },
-      foamColor: { value: new THREE.Color(0xe8fff8) },
+      waveAmp: { value: 0.22 },
+      deepColor: { value: new THREE.Color(0x011018) },
+      waterColor: { value: new THREE.Color(0x0d6a7c) },
+      foamColor: { value: new THREE.Color(0xd0fff4) },
       glintColor: { value: new THREE.Color(0xfff6d8) },
+      horizonColor: { value: new THREE.Color(Palette.skyHorizon) },
+      skyTopColor: { value: new THREE.Color(Palette.skyTop) },
       sunDir: { value: sunOffset.clone().normalize() },
+      opacityScale: { value: 1.0 },
     },
-    vertexShader: /* glsl */ `
-      uniform float time;
-      varying vec2 vUv;
-      varying vec3 vWorldPos;
-      varying float vWave;
-      void main() {
-        vUv = uv;
-        vec3 p = position;
-        float w1 = sin(p.x * 0.09 + time * 1.05) * 0.22;
-        float w2 = cos(p.y * 0.13 + time * 1.35) * 0.14;
-        float w3 = sin((p.x + p.y) * 0.05 + time * 0.7) * 0.1;
-        p.z += w1 + w2 + w3;
-        vWave = w1 + w2;
-        vec4 world = modelMatrix * vec4(p, 1.0);
-        vWorldPos = world.xyz;
-        gl_Position = projectionMatrix * viewMatrix * world;
-      }
-    `,
-    fragmentShader: /* glsl */ `
-      uniform float time;
-      uniform vec3 deepColor;
-      uniform vec3 waterColor;
-      uniform vec3 foamColor;
-      uniform vec3 glintColor;
-      uniform vec3 sunDir;
-      varying vec2 vUv;
-      varying vec3 vWorldPos;
-      varying float vWave;
-
-      float hash(vec2 p) {
-        return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453);
-      }
-      float noise(vec2 p) {
-        vec2 i = floor(p);
-        vec2 f = fract(p);
-        float a = hash(i);
-        float b = hash(i + vec2(1.0, 0.0));
-        float c = hash(i + vec2(0.0, 1.0));
-        float d = hash(i + vec2(1.0, 1.0));
-        vec2 u = f * f * (3.0 - 2.0 * f);
-        return mix(a, b, u.x) + (c - a) * u.y * (1.0 - u.x) + (d - b) * u.x * u.y;
-      }
-
-      void main() {
-        vec2 uv = vWorldPos.xz * 0.028;
-        float n1 = noise(uv * 2.8 + time * 0.18);
-        float n2 = noise(uv * 8.5 - time * 0.28);
-        float n3 = noise(uv * 18.0 + time * 0.4);
-        float caustic = pow(n1 * n2 * 1.75, 1.85);
-
-        float radial = length(vUv - 0.5) * 2.0;
-        // Clearer turquoise — less muddy void mix
-        vec3 col = mix(waterColor * 1.15, deepColor, smoothstep(0.25, 1.1, radial) * 0.72);
-        col += foamColor * caustic * 0.55;
-        col += foamColor * (0.06 + vWave * 0.35);
-        col += waterColor * n3 * 0.12;
-
-        // Specular sun glints — sharp sparkles on wave normals
-        vec3 nrm = normalize(vec3((n1 - 0.5) * 1.4, 0.72, (n2 - 0.5) * 1.4));
-        float glint = pow(max(dot(nrm, sunDir), 0.0), 72.0);
-        float spark = pow(max(dot(nrm, sunDir), 0.0), 220.0);
-        col += glintColor * glint * 0.95;
-        col += vec3(1.0) * spark * 1.4;
-
-        float alpha = mix(0.88, 0.7, caustic) * smoothstep(1.25, 0.35, radial);
-        gl_FragColor = vec4(col, alpha);
-      }
-    `,
+    vertexShader: waterVert,
+    fragmentShader: waterFrag,
   });
   disposables.push(waterMat);
   const water = new THREE.Mesh(waterGeo, waterMat);
@@ -390,10 +476,39 @@ export function buildEnvironment(scene: THREE.Scene): {
   water.receiveShadow = false;
   scene.add(water);
 
-  // Shadow catcher just above water — custom water shader can't receive maps
+  // Second translucent skim layer — parallax sheen
+  const skimGeo = new THREE.CircleGeometry(200, 64);
+  disposables.push(skimGeo);
+  const skimMat = new THREE.ShaderMaterial({
+    transparent: true,
+    depthWrite: false,
+    blending: THREE.AdditiveBlending,
+    uniforms: {
+      time: { value: 0 },
+      waveAmp: { value: 0.12 },
+      deepColor: { value: new THREE.Color(0x042830) },
+      waterColor: { value: new THREE.Color(0x2ec4d8) },
+      foamColor: { value: new THREE.Color(0xffffff) },
+      glintColor: { value: new THREE.Color(0xffe8b0) },
+      horizonColor: { value: new THREE.Color(0xffb070) },
+      skyTopColor: { value: new THREE.Color(0x6ad0ff) },
+      sunDir: { value: sunOffset.clone().normalize() },
+      opacityScale: { value: 0.38 },
+    },
+    vertexShader: waterVert,
+    fragmentShader: waterFrag,
+  });
+  disposables.push(skimMat);
+  const waterSkim = new THREE.Mesh(skimGeo, skimMat);
+  waterSkim.rotation.x = -Math.PI / 2;
+  waterSkim.position.y = -7.72;
+  waterSkim.renderOrder = 1;
+  scene.add(waterSkim);
+
+  // Shadow catcher — custom water can't receive maps
   const catcherGeo = new THREE.PlaneGeometry(320, 320);
   disposables.push(catcherGeo);
-  const catcherMat = new THREE.ShadowMaterial({ opacity: 0.72 });
+  const catcherMat = new THREE.ShadowMaterial({ opacity: 0.92 });
   disposables.push(catcherMat);
   const shadowCatcher = new THREE.Mesh(catcherGeo, catcherMat);
   shadowCatcher.rotation.x = -Math.PI / 2;
@@ -401,7 +516,6 @@ export function buildEnvironment(scene: THREE.Scene): {
   shadowCatcher.receiveShadow = true;
   scene.add(shadowCatcher);
 
-  // Soft caustic glow planes under course
   const glowPlanes: THREE.Mesh[] = [];
   for (let i = 0; i < 10; i++) {
     const gMat = new THREE.MeshBasicMaterial({
@@ -428,11 +542,20 @@ export function buildEnvironment(scene: THREE.Scene): {
     update(t: number, _follow?: THREE.Vector3) {
       skyMat.uniforms.time!.value = t;
       waterMat.uniforms.time!.value = t;
+      skimMat.uniforms.time!.value = t * 1.15;
 
-      // Keep shadow frustum locked on full course (z 10 → −210) — do not chase player
-      sun.target.position.set(0, 0, CourseBounds.zCenter);
+      sun.target.position.set(0, 0.4, CourseBounds.zCenter);
       sun.position.set(sunOffset.x, sunOffset.y, CourseBounds.zCenter + sunOffset.z);
       sun.target.updateMatrixWorld();
+
+      // Breath god-rays
+      for (let i = 0; i < godRays.length; i++) {
+        const ray = godRays[i]!;
+        const mat = ray.material as THREE.MeshBasicMaterial;
+        mat.opacity = 0.08 + Math.sin(t * 0.7 + i * 0.85) * 0.035 + (i % 3) * 0.015;
+        ray.scale.setScalar(1 + Math.sin(t * 0.45 + i) * 0.06);
+        ray.rotation.z = Math.sin(t * 0.2 + i * 0.4) * 0.04;
+      }
 
       const posAttr = confetti.geometry.attributes.position as THREE.BufferAttribute;
       for (let i = 0; i < confettiCount; i++) {
@@ -471,9 +594,21 @@ export function buildEnvironment(scene: THREE.Scene): {
         glowPlanes[i]!.scale.setScalar(1 + Math.sin(t * 0.8 + i) * 0.08);
       }
       water.position.y = -8 + Math.sin(t * 0.65) * 0.1;
+      waterSkim.position.y = -7.72 + Math.sin(t * 0.9 + 1.2) * 0.06;
+      waterSkim.rotation.z = Math.sin(t * 0.15) * 0.02;
     },
     dispose() {
-      scene.remove(sky, ringGroup, hazeGroup, confetti, sparkles, water, shadowCatcher);
+      scene.remove(
+        sky,
+        ringGroup,
+        hazeGroup,
+        godRayGroup,
+        confetti,
+        sparkles,
+        water,
+        waterSkim,
+        shadowCatcher,
+      );
       scene.remove(hemi, sun, sun.target, fill, rim, bounce);
       for (const g of glowPlanes) {
         scene.remove(g);

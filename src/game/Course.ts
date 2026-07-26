@@ -217,6 +217,10 @@ export function buildCourse(
     return pad;
   }
 
+  /**
+   * Visual candy beam — no raw BoxGeometry.
+   * Thin bars → capsule; chunky slabs → beveled extrude.
+   */
   function addStaticBox(
     x: number,
     y: number,
@@ -227,10 +231,28 @@ export function buildCourse(
     material: THREE.Material,
     rotY = 0,
   ): THREE.Mesh {
-    const geo = trackGeo(new THREE.BoxGeometry(sx, sy, sz));
-    const mesh = new THREE.Mesh(geo, material);
+    const minDim = Math.min(sx, sy, sz);
+    const maxDim = Math.max(sx, sy, sz);
+    let mesh: THREE.Mesh;
+
+    if (minDim <= 0.35 && maxDim >= minDim * 2.5) {
+      // Neon / rail bar → capsule along longest axis
+      const radius = minDim * 0.55;
+      let length = maxDim - radius * 2;
+      if (length < 0.05) length = 0.05;
+      const geo = trackGeo(new THREE.CapsuleGeometry(radius, length, 5, 10));
+      mesh = new THREE.Mesh(geo, material);
+      if (sx >= sy && sx >= sz) {
+        mesh.rotation.z = Math.PI / 2;
+      } else if (sz >= sx && sz >= sy) {
+        mesh.rotation.x = Math.PI / 2;
+      }
+    } else {
+      mesh = new THREE.Mesh(createBeveledPadGeo(sx, sz, sy), material);
+    }
+
     mesh.position.set(x, y, z);
-    mesh.rotation.y = rotY;
+    mesh.rotation.y += rotY;
     mesh.castShadow = true;
     mesh.receiveShadow = true;
     group.add(mesh);
@@ -717,11 +739,12 @@ export function buildCourse(
   addStaticCylinder(-5.5, 4.0, finishZ - 4.5, 0.42, 6.5, mats.jellyPink, 14);
   addStaticCylinder(5.5, 4.0, finishZ - 4.5, 0.42, 6.5, mats.jellyCyan, 14);
   addStaticBox(0, 7.4, finishZ - 4.5, 12, 0.7, 0.7, mats.hazard);
-  addStaticBox(0, 6.8, finishZ - 4.2, 11, 0.18, 0.18, mats.neonLime);
-  addStaticBox(0, 4.2, finishZ - 4.2, 10.5, 0.12, 0.12, mats.neonCyan);
+  addStaticBox(0, 6.8, finishZ - 4.2, 11, 0.22, 0.22, mats.neonLime);
+  addStaticBox(0, 4.2, finishZ - 4.2, 10.5, 0.16, 0.16, mats.neonCyan);
 
+  // Outer bloom arch rings — brighter for UnrealBloom punch
   const finishHalo = new THREE.Mesh(
-    trackGeo(new THREE.TorusGeometry(4.5, 0.18, 12, 48)),
+    trackGeo(new THREE.TorusGeometry(4.5, 0.22, 14, 56)),
     mats.neonHot,
   );
   finishHalo.position.set(0, 4.5, finishZ - 4.5);
@@ -729,7 +752,86 @@ export function buildCourse(
   finishHalo.castShadow = true;
   finishHalo.receiveShadow = true;
   group.add(finishHalo);
-  pulseLights.push({ mesh: finishHalo, base: 1.5, speed: 2.0, phase: 4 });
+  pulseLights.push({ mesh: finishHalo, base: 2.6, speed: 2.35, phase: 4 });
+
+  const finishHaloOuter = new THREE.Mesh(
+    trackGeo(new THREE.TorusGeometry(5.35, 0.1, 10, 48)),
+    mats.neonLime,
+  );
+  finishHaloOuter.position.set(0, 4.5, finishZ - 4.5);
+  finishHaloOuter.rotation.y = Math.PI / 2;
+  group.add(finishHaloOuter);
+  pulseLights.push({ mesh: finishHaloOuter, base: 2.4, speed: 1.8, phase: 1.2 });
+
+  // Additive glow discs behind arch for bloom bloom
+  for (let i = 0; i < 3; i++) {
+    const glow = new THREE.MeshBasicMaterial({
+      color: i === 1 ? Palette.sun : i === 0 ? Palette.hot : Palette.lime,
+      transparent: true,
+      opacity: 0.28,
+      depthWrite: false,
+      blending: THREE.AdditiveBlending,
+      side: THREE.DoubleSide,
+    });
+    extraMats.push(glow);
+    const disc = new THREE.Mesh(
+      trackGeo(new THREE.CircleGeometry(2.2 + i * 0.7, 32)),
+      glow,
+    );
+    disc.position.set(0, 4.5, finishZ - 4.8 - i * 0.15);
+    disc.rotation.y = Math.PI;
+    group.add(disc);
+    pulseLights.push({
+      mesh: disc,
+      base: 0.32 + i * 0.06,
+      speed: 2.2 + i * 0.4,
+      phase: i,
+    });
+  }
+
+  // Finish podium particle burst zone
+  const burstCount = 280;
+  const burstGeo = new THREE.BufferGeometry();
+  disposables.push(burstGeo);
+  const burstPos = new Float32Array(burstCount * 3);
+  const burstCol = new Float32Array(burstCount * 3);
+  const burstPhase = new Float32Array(burstCount);
+  const burstSpeed = new Float32Array(burstCount);
+  const burstPalette = [
+    new THREE.Color(Palette.lime),
+    new THREE.Color(Palette.hot),
+    new THREE.Color(Palette.sun),
+    new THREE.Color(Palette.teal),
+    new THREE.Color(0xffffff),
+  ];
+  for (let i = 0; i < burstCount; i++) {
+    const a = Math.random() * Math.PI * 2;
+    const r = Math.random() * 5.5;
+    burstPos[i * 3] = Math.cos(a) * r;
+    burstPos[i * 3 + 1] = Math.random() * 6;
+    burstPos[i * 3 + 2] = finishZ - 2 + Math.sin(a) * r * 0.6;
+    const c = burstPalette[i % burstPalette.length]!;
+    burstCol[i * 3] = c.r;
+    burstCol[i * 3 + 1] = c.g;
+    burstCol[i * 3 + 2] = c.b;
+    burstPhase[i] = Math.random() * Math.PI * 2;
+    burstSpeed[i] = 1.2 + Math.random() * 2.4;
+  }
+  burstGeo.setAttribute("position", new THREE.BufferAttribute(burstPos, 3));
+  burstGeo.setAttribute("color", new THREE.BufferAttribute(burstCol, 3));
+  const burstMat = new THREE.PointsMaterial({
+    size: 0.72,
+    vertexColors: true,
+    transparent: true,
+    opacity: 0.95,
+    depthWrite: false,
+    blending: THREE.AdditiveBlending,
+    sizeAttenuation: true,
+  });
+  extraMats.push(burstMat);
+  const finishBurst = new THREE.Points(burstGeo, burstMat);
+  finishBurst.frustumCulled = false;
+  group.add(finishBurst);
 
   const bannerSpecs: Array<{
     x: number;
@@ -809,16 +911,38 @@ export function buildCourse(
     update(t, _dt, phys) {
       startRing.rotation.z = t * 0.45;
       finishHalo.rotation.z = t * 0.55;
+      finishHaloOuter.rotation.z = -t * 0.4;
 
       for (const p of pulseLights) {
         const mat = p.mesh.material;
-        const pulse = p.base + Math.sin(t * p.speed + p.phase) * 0.35;
+        const pulse = p.base + Math.sin(t * p.speed + p.phase) * 0.45;
         if (mat instanceof THREE.MeshStandardMaterial) {
-          mat.emissiveIntensity = Math.max(0.4, pulse);
+          mat.emissiveIntensity = Math.max(0.5, pulse);
         } else if (mat instanceof THREE.MeshBasicMaterial) {
           mat.opacity = Math.max(0.12, pulse);
         }
       }
+
+      // Podium spectacle — upward confetti fountain
+      const bp = finishBurst.geometry.attributes.position as THREE.BufferAttribute;
+      for (let i = 0; i < burstCount; i++) {
+        const ph = burstPhase[i]!;
+        const spd = burstSpeed[i]!;
+        let y = bp.getY(i) + 0.035 * spd;
+        let x = bp.getX(i) + Math.sin(t * 2.2 + ph) * 0.02;
+        let z = bp.getZ(i) + Math.cos(t * 1.8 + ph) * 0.015;
+        if (y > 9.5) {
+          const a = Math.random() * Math.PI * 2;
+          const r = Math.random() * 5.5;
+          x = Math.cos(a) * r;
+          y = 0.9 + Math.random() * 1.2;
+          z = finishZ - 2 + Math.sin(a) * r * 0.6;
+        }
+        bp.setXYZ(i, x, y, z);
+      }
+      bp.needsUpdate = true;
+      burstMat.size = 0.55 + Math.sin(t * 3.5) * 0.22;
+      burstMat.opacity = 0.75 + Math.sin(t * 2.1) * 0.2;
 
       for (let i = 0; i < bannerPivots.length; i++) {
         const pivot = bannerPivots[i]!;

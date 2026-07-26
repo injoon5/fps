@@ -7,6 +7,7 @@ import { MaterialLibrary } from "./materials";
 import { buildEnvironment } from "./environment";
 import { buildCourse, type CourseHandles } from "./Course";
 import { GameAudio } from "./Audio";
+import { RoomEnvironment } from "three/addons/environments/RoomEnvironment.js";
 
 function $(id: string): HTMLElement {
   const el = document.getElementById(id);
@@ -30,6 +31,8 @@ export class FallRushGame {
   private player!: PlayerController;
   private course!: CourseHandles;
   private env!: ReturnType<typeof buildEnvironment>;
+  private pmrem?: THREE.PMREMGenerator;
+  private envMap?: THREE.Texture;
 
   private readonly overlay = $("overlay");
   private readonly finishOverlay = $("finish");
@@ -70,6 +73,14 @@ export class FallRushGame {
     this.env = buildEnvironment(this.pipeline.scene);
     this.course = buildCourse(this.pipeline.scene, this.physics, this.mats);
 
+    // PMREM room env — clearcoat / sheen / anisotropy need reflections to read
+    this.pmrem = new THREE.PMREMGenerator(this.pipeline.renderer);
+    this.pmrem.compileEquirectangularShader();
+    const room = new RoomEnvironment();
+    this.envMap = this.pmrem.fromScene(room, 0.04).texture;
+    this.pipeline.scene.environment = this.envMap;
+    this.pipeline.scene.environmentIntensity = 0.95;
+
     this.player = new PlayerController(
       this.pipeline.camera,
       this.physics,
@@ -85,12 +96,26 @@ export class FallRushGame {
     $("retry-btn").addEventListener("click", () => void this.retry());
     document.addEventListener("pointerlockchange", this.onLockChange);
 
-    // Capture / QA hook: window.__FALL_RUSH__.enableDebugFly()
+    // Capture / QA hook: window.__FALL_RUSH__
     (
       window as Window & {
         __FALL_RUSH__?: {
           enableDebugFly: () => void;
-          setCamera: (x: number, y: number, z: number, lx: number, ly: number, lz: number) => void;
+          setCamera: (
+            x: number,
+            y: number,
+            z: number,
+            lx: number,
+            ly: number,
+            lz: number,
+          ) => void;
+          setFirstPerson: (
+            x: number,
+            y: number,
+            z: number,
+            yaw?: number,
+            pitch?: number,
+          ) => void;
           hideUi: () => void;
           startGame: () => void;
         };
@@ -101,6 +126,7 @@ export class FallRushGame {
         this.cameraLocked = false;
         this.running = false;
         this.finished = false;
+        this.reattachCameraToPlayer();
         this.overlay.classList.add("hidden");
         this.finishOverlay.classList.add("hidden");
         this.hud.classList.add("hidden");
@@ -109,11 +135,29 @@ export class FallRushGame {
         this.debugFly = false;
         this.cameraLocked = true;
         this.running = false;
+        // World hero shots — free camera outside player rig
+        this.pipeline.scene.attach(this.pipeline.camera);
         const cam = this.pipeline.camera;
         cam.position.set(x, y, z);
         cam.lookAt(lx, ly, lz);
-        this.pipeline.setFov(58);
-        this.pipeline.setSpeedFx(0.32);
+        this.pipeline.setFov(56);
+        this.pipeline.setSpeedFx(0.38);
+      },
+      setFirstPerson: (x, y, z, yaw = 0, pitch = -0.1) => {
+        this.debugFly = false;
+        this.cameraLocked = true;
+        this.running = false;
+        this.finished = false;
+        this.reattachCameraToPlayer();
+        this.player.yawObject.position.set(x, y, z);
+        this.player.yawObject.rotation.set(0, yaw, 0);
+        this.player.pitchObject.rotation.set(pitch, 0, 0);
+        this.player.eye.position.set(0, GameConfig.playerHeight * 0.42, 0);
+        this.pipeline.setFov(GameConfig.fov);
+        this.pipeline.setSpeedFx(0.42);
+        this.overlay.classList.add("hidden");
+        this.finishOverlay.classList.add("hidden");
+        this.hud.classList.add("hidden");
       },
       hideUi: () => {
         this.overlay.classList.add("hidden");
@@ -124,6 +168,7 @@ export class FallRushGame {
       startGame: () => {
         this.cameraLocked = false;
         this.debugFly = false;
+        this.reattachCameraToPlayer();
         void this.start();
       },
     };
@@ -143,6 +188,8 @@ export class FallRushGame {
     this.mats.dispose();
     this.physics.dispose();
     this.audio.dispose();
+    this.envMap?.dispose();
+    this.pmrem?.dispose();
     this.pipeline.dispose();
   }
 
@@ -150,6 +197,7 @@ export class FallRushGame {
     await this.audio.unlock();
     this.cameraLocked = false;
     this.debugFly = false;
+    this.reattachCameraToPlayer();
     this.overlay.classList.add("hidden");
     this.finishOverlay.classList.add("hidden");
     this.finishOverlay.classList.remove("celebrate");
@@ -214,7 +262,11 @@ export class FallRushGame {
         this.checkCheckpoints(t.x, t.y, t.z);
         this.checkFinish(t.x, t.y, t.z);
       } else {
+        // Paused (pointer unlock): freeze timer; keep speed readout honest from body
         this.physics.step();
+        const lv = this.player.rigidBody.linvel();
+        const spd = Math.hypot(lv.x, lv.z);
+        this.speedEl.innerHTML = `${spd.toFixed(0)} <span>m/s</span>`;
       }
     } else {
       // Attract / debug fly: showcase lit pads + contact shadows down the course
@@ -225,34 +277,49 @@ export class FallRushGame {
     }
   };
 
+  /** Ensure FP camera is parented under the player eye after free-cam shots. */
+  private reattachCameraToPlayer(): void {
+    const cam = this.pipeline.camera;
+    if (cam.parent !== this.player.eye) {
+      this.player.eye.add(cam);
+    }
+    cam.position.set(0, 0, 0);
+    cam.rotation.set(0, 0, 0);
+    cam.scale.set(1, 1, 1);
+  }
+
   private updateAttractCamera(): void {
     if (this.cameraLocked) return;
 
     const cam = this.pipeline.camera;
+    // Free cinematic cam must live in world space (not under player eye)
+    if (cam.parent !== this.pipeline.scene) {
+      this.pipeline.scene.attach(cam);
+    }
     const t = this.time;
 
     if (this.debugFly) {
-      // Slow cinematic dolly along -Z so screenshots catch soft shadows on pads
-      const z = 6 - ((t * 9) % 200);
-      const x = Math.sin(t * 0.35) * 4.5;
-      const y = 7.5 + Math.sin(t * 0.45) * 1.2;
+      // Slow cinematic dolly along -Z — soft shadows + god-rays readable
+      const z = 8 - ((t * 8.5) % 210);
+      const x = 5.5 + Math.sin(t * 0.32) * 3.2;
+      const y = 8.2 + Math.sin(t * 0.4) * 1.4;
       cam.position.set(x, y, z);
-      cam.lookAt(Math.sin(t * 0.2) * 1.5, 1.2, z - 18);
-      this.pipeline.setFov(56);
-      this.pipeline.setSpeedFx(0.35);
+      cam.lookAt(Math.sin(t * 0.18) * 1.2, 1.0, z - 22);
+      this.pipeline.setFov(54);
+      this.pipeline.setSpeedFx(0.4);
       return;
     }
 
     // Title attract: low three-quarter over start pad looking down the lit course
     const sway = Math.sin(t * 0.28);
     cam.position.set(
-      9.5 + sway * 2.2,
-      6.8 + Math.sin(t * 0.5) * 0.55,
-      7.5 + Math.cos(t * 0.22) * 1.8,
+      10.2 + sway * 2.0,
+      7.0 + Math.sin(t * 0.5) * 0.5,
+      8.2 + Math.cos(t * 0.22) * 1.6,
     );
-    cam.lookAt(0.4, 1.1, -16 - Math.sin(t * 0.18) * 4);
-    this.pipeline.setFov(58);
-    this.pipeline.setSpeedFx(0.28);
+    cam.lookAt(0.3, 0.95, -14 - Math.sin(t * 0.18) * 4);
+    this.pipeline.setFov(56);
+    this.pipeline.setSpeedFx(0.32);
   }
 
   private checkFall(y: number): void {
