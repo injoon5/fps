@@ -1,0 +1,24 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta
+      name="description"
+      content="Liquid Glass — optical recreation of Apple’s WWDC material"
+    />
+    <title>Liquid Glass</title>
+    <style>
+      /* Prefer real SF Pro when present (Apple devices); system stack otherwise.
+         Inter is last-resort only — never the primary face. */
+      html {
+        font-family: "SF Pro Display", "SF Pro Text", -apple-system,
+          BlinkMacSystemFont, "Segoe UI", sans-serif;
+      }
+    </style>
+  </head>
+  <body>
+    <div id="app"></div>
+    <script type="module" src="/src/main.ts"></script>
+  </body>
+</html>
