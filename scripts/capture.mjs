@@ -20,7 +20,7 @@ await page.goto(url, { waitUntil: "networkidle", timeout: 90000 });
 await page.waitForFunction(() => !!window.__FALL_RUSH__, null, { timeout: 30000 });
 await page.waitForTimeout(2600);
 
-const prefix = process.env.CAPTURE_PREFIX ?? "pass2";
+const prefix = process.env.CAPTURE_PREFIX ?? "final";
 
 // 01 — title over live 3D attract
 await page.screenshot({ path: `${OUT}/${prefix}-01-title.png`, type: "png" });

@@ -422,7 +422,7 @@ export function buildCourse(
     halo.castShadow = true;
     halo.receiveShadow = true;
     group.add(halo);
-    pulseLights.push({ mesh: halo, base: 1.5, speed: 2.4, phase: index });
+    pulseLights.push({ mesh: halo, base: 0.95, speed: 2.4, phase: index });
 
     for (const side of [-1.55, 1.55]) {
       const pivot = new THREE.Group();
@@ -461,7 +461,7 @@ export function buildCourse(
   startRing.castShadow = true;
   startRing.receiveShadow = true;
   group.add(startRing);
-  pulseLights.push({ mesh: startRing, base: 1.4, speed: 1.6, phase: 0 });
+  pulseLights.push({ mesh: startRing, base: 0.9, speed: 1.6, phase: 0 });
 
   addPlatform(0, 0, -11, 4.2, 9, 1.0, mats.jellyPink);
   addStaticBox(0, 0.7, -11, 3.4, 0.1, 0.1, mats.neonHot);
@@ -742,7 +742,7 @@ export function buildCourse(
   addStaticBox(0, 6.8, finishZ - 4.2, 11, 0.22, 0.22, mats.neonLime);
   addStaticBox(0, 4.2, finishZ - 4.2, 10.5, 0.16, 0.16, mats.neonCyan);
 
-  // Outer bloom arch rings — brighter for UnrealBloom punch
+  // Outer arch rings — neon pop without white-wash
   const finishHalo = new THREE.Mesh(
     trackGeo(new THREE.TorusGeometry(4.5, 0.22, 14, 56)),
     mats.neonHot,
@@ -752,7 +752,7 @@ export function buildCourse(
   finishHalo.castShadow = true;
   finishHalo.receiveShadow = true;
   group.add(finishHalo);
-  pulseLights.push({ mesh: finishHalo, base: 2.6, speed: 2.35, phase: 4 });
+  pulseLights.push({ mesh: finishHalo, base: 1.0, speed: 2.35, phase: 4 });
 
   const finishHaloOuter = new THREE.Mesh(
     trackGeo(new THREE.TorusGeometry(5.35, 0.1, 10, 48)),
@@ -761,14 +761,14 @@ export function buildCourse(
   finishHaloOuter.position.set(0, 4.5, finishZ - 4.5);
   finishHaloOuter.rotation.y = Math.PI / 2;
   group.add(finishHaloOuter);
-  pulseLights.push({ mesh: finishHaloOuter, base: 2.4, speed: 1.8, phase: 1.2 });
+  pulseLights.push({ mesh: finishHaloOuter, base: 0.95, speed: 1.8, phase: 1.2 });
 
-  // Additive glow discs behind arch for bloom bloom
+  // Soft glow discs behind arch
   for (let i = 0; i < 3; i++) {
     const glow = new THREE.MeshBasicMaterial({
       color: i === 1 ? Palette.sun : i === 0 ? Palette.hot : Palette.lime,
       transparent: true,
-      opacity: 0.28,
+      opacity: 0.14,
       depthWrite: false,
       blending: THREE.AdditiveBlending,
       side: THREE.DoubleSide,
@@ -783,7 +783,7 @@ export function buildCourse(
     group.add(disc);
     pulseLights.push({
       mesh: disc,
-      base: 0.32 + i * 0.06,
+      base: 0.14 + i * 0.03,
       speed: 2.2 + i * 0.4,
       phase: i,
     });
@@ -915,11 +915,11 @@ export function buildCourse(
 
       for (const p of pulseLights) {
         const mat = p.mesh.material;
-        const pulse = p.base + Math.sin(t * p.speed + p.phase) * 0.45;
+        const pulse = p.base + Math.sin(t * p.speed + p.phase) * 0.28;
         if (mat instanceof THREE.MeshStandardMaterial) {
-          mat.emissiveIntensity = Math.max(0.5, pulse);
+          mat.emissiveIntensity = Math.max(0.25, Math.min(0.85, pulse));
         } else if (mat instanceof THREE.MeshBasicMaterial) {
-          mat.opacity = Math.max(0.12, pulse);
+          mat.opacity = Math.max(0.08, Math.min(0.28, pulse));
         }
       }
 

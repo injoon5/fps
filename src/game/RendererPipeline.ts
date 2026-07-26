@@ -69,29 +69,29 @@ export class RendererPipeline {
     this.composer.addPass(normalPass);
 
     this.ssao = new SSAOEffect(this.camera, normalPass.texture, {
-      samples: 14,
-      rings: 5,
-      intensity: 1.95,
-      radius: 0.14,
-      bias: 0.02,
-      fade: 0.012,
-      luminanceInfluence: 0.18,
-      minRadiusScale: 0.08,
-      worldDistanceThreshold: 70,
-      worldDistanceFalloff: 22,
-      worldProximityThreshold: 1.4,
-      worldProximityFalloff: 0.4,
-      resolutionScale: 0.65,
+      samples: 18,
+      rings: 6,
+      intensity: 3.15,
+      radius: 0.32,
+      bias: 0.015,
+      fade: 0.008,
+      luminanceInfluence: 0.06,
+      minRadiusScale: 0.12,
+      worldDistanceThreshold: 80,
+      worldDistanceFalloff: 28,
+      worldProximityThreshold: 2.0,
+      worldProximityFalloff: 0.3,
+      resolutionScale: 0.75,
       depthAwareUpsampling: true,
-      color: new THREE.Color(Palette.deepTeal),
+      color: new THREE.Color(0x021820),
     });
 
     this.bloom = new BloomEffect({
-      intensity: 0.72,
-      luminanceThreshold: 0.58,
-      luminanceSmoothing: 0.24,
+      intensity: 0.18,
+      luminanceThreshold: 0.94,
+      luminanceSmoothing: 0.32,
       mipmapBlur: true,
-      radius: 0.55,
+      radius: 0.32,
     });
 
     this.chromatic = new ChromaticAberrationEffect({
@@ -101,23 +101,23 @@ export class RendererPipeline {
     });
 
     const vignette = new VignetteEffect({
-      darkness: 0.36,
-      offset: 0.32,
+      darkness: 0.48,
+      offset: 0.26,
     });
 
     const tone = new ToneMappingEffect({
       mode: ToneMappingMode.ACES_FILMIC,
-      whitePoint: 3.85,
-      middleGrey: 0.24,
+      whitePoint: 2.15,
+      middleGrey: 0.3,
     });
 
     const grade = new HueSaturationEffect({
-      saturation: 0.24,
+      saturation: 0.14,
     });
 
     const contrast = new BrightnessContrastEffect({
-      brightness: -0.04,
-      contrast: 0.26,
+      brightness: -0.08,
+      contrast: 0.38,
     });
 
     const smaa = new SMAAEffect();
@@ -142,10 +142,10 @@ export class RendererPipeline {
 
   setSpeedFx(normalizedSpeed: number): void {
     const t = THREE.MathUtils.clamp(normalizedSpeed, 0, 1);
-    this.bloom.intensity = 0.65 + t * 0.5;
-    const aberration = 0.0002 + t * 0.001;
+    this.bloom.intensity = 0.16 + t * 0.14;
+    const aberration = 0.00012 + t * 0.0006;
     this.chromatic.offset.set(aberration, aberration * 0.85);
-    this.ssao.intensity = 1.7 + t * 0.4;
+    this.ssao.intensity = 2.9 + t * 0.35;
   }
 
   setFov(fov: number): void {

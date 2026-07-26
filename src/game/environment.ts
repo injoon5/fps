@@ -87,40 +87,40 @@ export function buildEnvironment(scene: THREE.Scene): {
   scene.fog = new THREE.Fog(Palette.skyHorizon, 58, 245);
 
   // Keep hemi very low — FP contact shadows on lime pad + pink bridge must punch
-  const hemi = new THREE.HemisphereLight(Palette.skyTop, Palette.deepTeal, 0.14);
+  const hemi = new THREE.HemisphereLight(Palette.skyTop, Palette.deepTeal, 0.08);
   scene.add(hemi);
 
   // Sun from upper-right / slightly behind spawn so looking down-course (-Z)
   // you get crisp pad contact shadows stretching across lime + pink bridge
-  const sun = new THREE.DirectionalLight(0xfff2dc, 3.85);
-  const sunOffset = new THREE.Vector3(68, 52, 55);
+  const sun = new THREE.DirectionalLight(0xfff0d4, 2.05);
+  const sunOffset = new THREE.Vector3(78, 62, 42);
   sun.position.set(sunOffset.x, sunOffset.y, CourseBounds.zCenter + sunOffset.z);
   sun.castShadow = true;
   sun.shadow.mapSize.set(4096, 4096);
   sun.shadow.camera.near = 8;
   sun.shadow.camera.far = 380;
-  sun.shadow.camera.left = -55;
-  sun.shadow.camera.right = 55;
-  sun.shadow.camera.top = 145;
-  sun.shadow.camera.bottom = -145;
+  sun.shadow.camera.left = -42;
+  sun.shadow.camera.right = 42;
+  sun.shadow.camera.top = 120;
+  sun.shadow.camera.bottom = -120;
   // Hard contacts — low radius, tight bias
-  sun.shadow.bias = -0.00012;
-  sun.shadow.normalBias = 0.018;
-  sun.shadow.radius = 0.65;
+  sun.shadow.bias = -0.00018;
+  sun.shadow.normalBias = 0.025;
+  sun.shadow.radius = 0.35;
   sun.target.position.set(0, 0.4, CourseBounds.zCenter);
   sun.shadow.camera.updateProjectionMatrix();
   scene.add(sun);
   scene.add(sun.target);
 
-  const fill = new THREE.DirectionalLight(Palette.teal, 0.08);
+  const fill = new THREE.DirectionalLight(Palette.teal, 0.04);
   fill.position.set(-42, 14, -22);
   scene.add(fill);
 
-  const rim = new THREE.DirectionalLight(Palette.hot, 0.08);
+  const rim = new THREE.DirectionalLight(Palette.hot, 0.04);
   rim.position.set(8, 9, -60);
   scene.add(rim);
 
-  const bounce = new THREE.DirectionalLight(Palette.sun, 0.05);
+  const bounce = new THREE.DirectionalLight(Palette.sun, 0.02);
   bounce.position.set(0, -18, -35);
   scene.add(bounce);
 
@@ -178,9 +178,9 @@ export function buildEnvironment(scene: THREE.Scene): {
         float disc = pow(sunDot, 380.0);
         float corona = pow(sunDot, 16.0);
         float glow = pow(sunDot, 4.0);
-        col += vec3(1.0, 0.94, 0.78) * disc * 2.8;
-        col += vec3(1.0, 0.8, 0.48) * corona * 1.15;
-        col += vec3(1.0, 0.72, 0.42) * glow * 0.42;
+        col += vec3(1.0, 0.94, 0.78) * disc * 1.6;
+        col += vec3(1.0, 0.8, 0.48) * corona * 0.7;
+        col += vec3(1.0, 0.72, 0.42) * glow * 0.28;
 
         float grain = hash(dir.xz * 80.0 + time * 0.01);
         col += vec3(grain) * 0.03 * smoothstep(0.2, 0.9, h);
@@ -201,10 +201,10 @@ export function buildEnvironment(scene: THREE.Scene): {
   for (let i = 0; i < 5; i++) {
     const ringMat = new THREE.MeshStandardMaterial({
       color: i % 2 === 0 ? Palette.hot : Palette.lime,
-      roughness: 0.32,
-      metalness: 0.35,
+      roughness: 0.42,
+      metalness: 0.28,
       emissive: i % 2 === 0 ? Palette.hot : Palette.lime,
-      emissiveIntensity: 0.55,
+      emissiveIntensity: 0.22,
     });
     disposables.push(ringMat);
     const ringGeo = new THREE.TorusGeometry(52 + i * 20, 1.05 + i * 0.1, 12, 112);
@@ -251,7 +251,7 @@ export function buildEnvironment(scene: THREE.Scene): {
       map: godRayTex,
       color: i % 2 === 0 ? 0xffe8b8 : 0xffd090,
       transparent: true,
-      opacity: 0.07 + (i % 3) * 0.018,
+      opacity: 0.04 + (i % 3) * 0.012,
       depthWrite: false,
       depthTest: true,
       blending: THREE.AdditiveBlending,
@@ -508,7 +508,7 @@ export function buildEnvironment(scene: THREE.Scene): {
   // Shadow catcher — custom water can't receive maps
   const catcherGeo = new THREE.PlaneGeometry(320, 320);
   disposables.push(catcherGeo);
-  const catcherMat = new THREE.ShadowMaterial({ opacity: 0.92 });
+  const catcherMat = new THREE.ShadowMaterial({ opacity: 0.98 });
   disposables.push(catcherMat);
   const shadowCatcher = new THREE.Mesh(catcherGeo, catcherMat);
   shadowCatcher.rotation.x = -Math.PI / 2;
@@ -552,7 +552,7 @@ export function buildEnvironment(scene: THREE.Scene): {
       for (let i = 0; i < godRays.length; i++) {
         const ray = godRays[i]!;
         const mat = ray.material as THREE.MeshBasicMaterial;
-        mat.opacity = 0.08 + Math.sin(t * 0.7 + i * 0.85) * 0.035 + (i % 3) * 0.015;
+        mat.opacity = 0.045 + Math.sin(t * 0.7 + i * 0.85) * 0.02 + (i % 3) * 0.01;
         ray.scale.setScalar(1 + Math.sin(t * 0.45 + i) * 0.06);
         ray.rotation.z = Math.sin(t * 0.2 + i * 0.4) * 0.04;
       }
