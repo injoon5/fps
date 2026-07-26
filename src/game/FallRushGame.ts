@@ -79,8 +79,8 @@ export class FallRushGame {
     const room = new RoomEnvironment();
     this.envMap = this.pmrem.fromScene(room, 0.04).texture;
     this.pipeline.scene.environment = this.envMap;
-    // Keep low — clearcoat + bright PMREM = specular white pops
-    this.pipeline.scene.environmentIntensity = 0.18;
+    // Keep moderate — clearcoat + bright PMREM = specular white pops
+    this.pipeline.scene.environmentIntensity = 0.35;
 
     this.player = new PlayerController(
       this.pipeline.camera,
@@ -333,6 +333,7 @@ export class FallRushGame {
   }
 
   private checkFall(y: number): void {
+    // Course deck sits near y≈0 — anything under the pads is a soft kill
     if (y > GameConfig.fallKillY) return;
     this.flashDamage();
     this.audio.fall();

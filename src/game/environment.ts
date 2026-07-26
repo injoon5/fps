@@ -92,7 +92,7 @@ export function buildEnvironment(scene: THREE.Scene): {
 
   // Sun from upper-right / slightly behind spawn so looking down-course (-Z)
   // you get crisp pad contact shadows stretching across lime + pink bridge
-  const sun = new THREE.DirectionalLight(0xfff0d4, 1.55);
+  const sun = new THREE.DirectionalLight(0xfff0d4, 1.85);
   const sunOffset = new THREE.Vector3(78, 62, 42);
   sun.position.set(sunOffset.x, sunOffset.y, CourseBounds.zCenter + sunOffset.z);
   sun.castShadow = true;

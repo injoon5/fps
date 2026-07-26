@@ -85,18 +85,18 @@ function jellyMat(
   const mat = new THREE.MeshPhysicalMaterial({
     color,
     map: opts.map,
-    roughness: opts.roughness ?? 0.32,
-    metalness: opts.metalness ?? 0.02,
-    // Soft vinyl — high clearcoat + PMREM = single-pixel specular white flashes
-    clearcoat: Math.min(opts.clearcoat ?? 0.35, 0.4),
-    clearcoatRoughness: Math.max(opts.clearcoatRoughness ?? 0.45, 0.4),
-    sheen: opts.sheen ?? 0.35,
-    sheenRoughness: opts.sheenRoughness ?? 0.45,
+    roughness: opts.roughness ?? 0.3,
+    metalness: opts.metalness ?? 0.03,
+    // Candy sheen without PMREM laser specs
+    clearcoat: Math.min(opts.clearcoat ?? 0.55, 0.6),
+    clearcoatRoughness: Math.max(opts.clearcoatRoughness ?? 0.35, 0.28),
+    sheen: opts.sheen ?? 0.45,
+    sheenRoughness: opts.sheenRoughness ?? 0.4,
     sheenColor,
-    anisotropy: Math.min(opts.anisotropy ?? 0.15, 0.2),
+    anisotropy: Math.min(opts.anisotropy ?? 0.2, 0.25),
     anisotropyRotation: 0.35,
-    reflectivity: 0.22,
-    envMapIntensity: 0.28,
+    reflectivity: 0.35,
+    envMapIntensity: 0.45,
     emissive: color,
     emissiveIntensity: opts.emissiveIntensity ?? 0.015,
   });
@@ -378,11 +378,11 @@ export class MaterialLibrary {
     emissiveIntensity: 0.08,
   });
   /** Dark underside skirt — faux AO contact at pad bottoms. */
-  readonly underside = softMat(0x020608, {
-    roughness: 0.96,
+  readonly underside = softMat(0x3a1528, {
+    roughness: 0.92,
     metalness: 0.02,
-    emissive: 0x021018,
-    emissiveIntensity: 0.01,
+    emissive: 0x1a0810,
+    emissiveIntensity: 0.02,
   });
   /** Soft contact blob under static pads (transparent black disc). */
   readonly blobShadow = new THREE.MeshBasicMaterial({

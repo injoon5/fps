@@ -64,6 +64,6 @@ export const GameConfig = {
   groundNormalMinY: 0.45,
   /** Max downward/upward vertical speed still considered grounded. */
   groundMaxVy: 2.2,
-  fallKillY: -12,
+  fallKillY: -1.25,
   checkpointGrace: 0.35,
 } as const;

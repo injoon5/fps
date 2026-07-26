@@ -70,30 +70,29 @@ export class RendererPipeline {
 
     // Soft contact AO only — high intensity reads as comic black outlines
     this.ssao = new SSAOEffect(this.camera, normalPass.texture, {
-      samples: 12,
-      rings: 5,
-      intensity: 1.15,
-      radius: 0.12,
-      bias: 0.025,
-      fade: 0.02,
-      luminanceInfluence: 0.35,
+      samples: 10,
+      rings: 4,
+      intensity: 0.85,
+      radius: 0.1,
+      bias: 0.03,
+      fade: 0.025,
+      luminanceInfluence: 0.4,
       minRadiusScale: 0.15,
-      worldDistanceThreshold: 55,
-      worldDistanceFalloff: 18,
-      worldProximityThreshold: 1.5,
-      worldProximityFalloff: 0.45,
+      worldDistanceThreshold: 45,
+      worldDistanceFalloff: 16,
+      worldProximityThreshold: 1.4,
+      worldProximityFalloff: 0.5,
       resolutionScale: 0.5,
       depthAwareUpsampling: true,
-      color: new THREE.Color(Palette.deepTeal),
+      color: new THREE.Color(0x1a3040),
     });
 
     this.bloom = new BloomEffect({
-      // Near-off: mipmap bloom + specular hotspots = intermittent white frames
-      intensity: 0.06,
-      luminanceThreshold: 0.98,
-      luminanceSmoothing: 0.5,
+      intensity: 0.18,
+      luminanceThreshold: 0.94,
+      luminanceSmoothing: 0.45,
       mipmapBlur: true,
-      radius: 0.25,
+      radius: 0.35,
     });
 
     this.chromatic = new ChromaticAberrationEffect({
@@ -144,10 +143,10 @@ export class RendererPipeline {
 
   setSpeedFx(normalizedSpeed: number): void {
     const t = THREE.MathUtils.clamp(normalizedSpeed, 0, 1);
-    this.bloom.intensity = 0.04 + t * 0.04;
+    this.bloom.intensity = 0.15 + t * 0.1;
     const aberration = 0.0001 + t * 0.00035;
     this.chromatic.offset.set(aberration, aberration * 0.85);
-    this.ssao.intensity = 1.05 + t * 0.15;
+    this.ssao.intensity = 0.95 + t * 0.15;
   }
 
   setFov(fov: number): void {
