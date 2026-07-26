@@ -20,23 +20,22 @@ await page.goto(url, { waitUntil: "networkidle", timeout: 90000 });
 await page.waitForFunction(() => !!window.__FALL_RUSH__, null, { timeout: 30000 });
 await page.waitForTimeout(2600);
 
-const prefix = process.env.CAPTURE_PREFIX ?? "final";
+const prefix = process.env.CAPTURE_PREFIX ?? "wow";
 
 // 01 — title over live 3D attract
 await page.screenshot({ path: `${OUT}/${prefix}-01-title.png`, type: "png" });
 
-// FP from start pad looking down-course — contact shadows on lime + pink bridge
+// FP from start pad looking down-course — vinyl + contact + set dressing
 await page.evaluate(() => {
   const api = window.__FALL_RUSH__;
   if (!api) return;
   api.hideUi();
-  // Eye height on start pad body, slight downward look toward pink bridge
   api.setFirstPerson(0, 2.25, 2.55, 0, -0.16);
 });
 await page.waitForTimeout(2200);
 await page.screenshot({ path: `${OUT}/${prefix}-fp-start.png`, type: "png" });
 
-// FP near spin / candy rollers
+// FP near spin / candy rollers — densified sides
 await page.evaluate(() => {
   const api = window.__FALL_RUSH__;
   if (!api) return;
@@ -46,7 +45,7 @@ await page.evaluate(() => {
 await page.waitForTimeout(2000);
 await page.screenshot({ path: `${OUT}/${prefix}-fp-spin.png`, type: "png" });
 
-// World three-quarter — sun-side so pad shadows land on catcher
+// World three-quarter — sun-side shadows + dressing density
 await page.evaluate(() => {
   const api = window.__FALL_RUSH__;
   if (!api) return;
@@ -66,14 +65,13 @@ await page.evaluate(() => {
 await page.waitForTimeout(2000);
 await page.screenshot({ path: `${OUT}/${prefix}-finish.png`, type: "png" });
 
-// Debug fly hero — uses __FALL_RUSH__.enableDebugFly when available
+// Debug fly hero
 await page.evaluate(() => {
   window.__FALL_RUSH__?.enableDebugFly();
 });
 await page.waitForTimeout(4500);
 await page.screenshot({ path: `${OUT}/${prefix}-fly-hero.png`, type: "png" });
 
-// Extra fly beat later in path
 await page.waitForTimeout(3500);
 await page.screenshot({ path: `${OUT}/${prefix}-fly-mid.png`, type: "png" });
 

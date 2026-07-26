@@ -69,29 +69,29 @@ export class RendererPipeline {
     this.composer.addPass(normalPass);
 
     this.ssao = new SSAOEffect(this.camera, normalPass.texture, {
-      samples: 18,
-      rings: 6,
-      intensity: 3.15,
-      radius: 0.32,
-      bias: 0.015,
-      fade: 0.008,
-      luminanceInfluence: 0.06,
-      minRadiusScale: 0.12,
-      worldDistanceThreshold: 80,
-      worldDistanceFalloff: 28,
-      worldProximityThreshold: 2.0,
-      worldProximityFalloff: 0.3,
-      resolutionScale: 0.75,
+      samples: 22,
+      rings: 7,
+      intensity: 4.2,
+      radius: 0.42,
+      bias: 0.01,
+      fade: 0.005,
+      luminanceInfluence: 0.04,
+      minRadiusScale: 0.08,
+      worldDistanceThreshold: 90,
+      worldDistanceFalloff: 30,
+      worldProximityThreshold: 2.4,
+      worldProximityFalloff: 0.25,
+      resolutionScale: 0.8,
       depthAwareUpsampling: true,
-      color: new THREE.Color(0x021820),
+      color: new THREE.Color(0x00080c),
     });
 
     this.bloom = new BloomEffect({
-      intensity: 0.18,
-      luminanceThreshold: 0.94,
-      luminanceSmoothing: 0.32,
+      intensity: 0.12,
+      luminanceThreshold: 0.97,
+      luminanceSmoothing: 0.28,
       mipmapBlur: true,
-      radius: 0.32,
+      radius: 0.28,
     });
 
     this.chromatic = new ChromaticAberrationEffect({
@@ -116,8 +116,8 @@ export class RendererPipeline {
     });
 
     const contrast = new BrightnessContrastEffect({
-      brightness: -0.08,
-      contrast: 0.38,
+      brightness: -0.14,
+      contrast: 0.48,
     });
 
     const smaa = new SMAAEffect();
@@ -142,10 +142,10 @@ export class RendererPipeline {
 
   setSpeedFx(normalizedSpeed: number): void {
     const t = THREE.MathUtils.clamp(normalizedSpeed, 0, 1);
-    this.bloom.intensity = 0.16 + t * 0.14;
+    this.bloom.intensity = 0.1 + t * 0.1;
     const aberration = 0.00012 + t * 0.0006;
     this.chromatic.offset.set(aberration, aberration * 0.85);
-    this.ssao.intensity = 2.9 + t * 0.35;
+    this.ssao.intensity = 3.9 + t * 0.4;
   }
 
   setFov(fov: number): void {

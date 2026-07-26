@@ -87,12 +87,12 @@ export function buildEnvironment(scene: THREE.Scene): {
   scene.fog = new THREE.Fog(Palette.skyHorizon, 58, 245);
 
   // Keep hemi very low — FP contact shadows on lime pad + pink bridge must punch
-  const hemi = new THREE.HemisphereLight(Palette.skyTop, Palette.deepTeal, 0.08);
+  const hemi = new THREE.HemisphereLight(Palette.skyTop, Palette.deepTeal, 0.035);
   scene.add(hemi);
 
   // Sun from upper-right / slightly behind spawn so looking down-course (-Z)
   // you get crisp pad contact shadows stretching across lime + pink bridge
-  const sun = new THREE.DirectionalLight(0xfff0d4, 2.05);
+  const sun = new THREE.DirectionalLight(0xfff0d4, 2.55);
   const sunOffset = new THREE.Vector3(78, 62, 42);
   sun.position.set(sunOffset.x, sunOffset.y, CourseBounds.zCenter + sunOffset.z);
   sun.castShadow = true;
@@ -104,9 +104,9 @@ export function buildEnvironment(scene: THREE.Scene): {
   sun.shadow.camera.top = 120;
   sun.shadow.camera.bottom = -120;
   // Hard contacts — low radius, tight bias
-  sun.shadow.bias = -0.00018;
-  sun.shadow.normalBias = 0.025;
-  sun.shadow.radius = 0.35;
+  sun.shadow.bias = -0.00025;
+  sun.shadow.normalBias = 0.018;
+  sun.shadow.radius = 0.2;
   sun.target.position.set(0, 0.4, CourseBounds.zCenter);
   sun.shadow.camera.updateProjectionMatrix();
   scene.add(sun);
@@ -457,14 +457,14 @@ export function buildEnvironment(scene: THREE.Scene): {
     uniforms: {
       time: { value: 0 },
       waveAmp: { value: 0.22 },
-      deepColor: { value: new THREE.Color(0x011018) },
-      waterColor: { value: new THREE.Color(0x0d6a7c) },
-      foamColor: { value: new THREE.Color(0xd0fff4) },
+      deepColor: { value: new THREE.Color(0x010a10) },
+      waterColor: { value: new THREE.Color(0x085868) },
+      foamColor: { value: new THREE.Color(0xb8efe4) },
       glintColor: { value: new THREE.Color(0xfff6d8) },
       horizonColor: { value: new THREE.Color(Palette.skyHorizon) },
       skyTopColor: { value: new THREE.Color(Palette.skyTop) },
       sunDir: { value: sunOffset.clone().normalize() },
-      opacityScale: { value: 1.0 },
+      opacityScale: { value: 0.82 },
     },
     vertexShader: waterVert,
     fragmentShader: waterFrag,
@@ -493,7 +493,7 @@ export function buildEnvironment(scene: THREE.Scene): {
       horizonColor: { value: new THREE.Color(0xffb070) },
       skyTopColor: { value: new THREE.Color(0x6ad0ff) },
       sunDir: { value: sunOffset.clone().normalize() },
-      opacityScale: { value: 0.38 },
+      opacityScale: { value: 0.22 },
     },
     vertexShader: waterVert,
     fragmentShader: waterFrag,
@@ -505,23 +505,26 @@ export function buildEnvironment(scene: THREE.Scene): {
   waterSkim.renderOrder = 1;
   scene.add(waterSkim);
 
-  // Shadow catcher — custom water can't receive maps
+  // Shadow catcher ABOVE skim so contact shadows aren't washed by additive water
   const catcherGeo = new THREE.PlaneGeometry(320, 320);
   disposables.push(catcherGeo);
-  const catcherMat = new THREE.ShadowMaterial({ opacity: 0.98 });
+  const catcherMat = new THREE.ShadowMaterial({
+    color: 0x000000,
+    opacity: 1.0,
+  });
   disposables.push(catcherMat);
   const shadowCatcher = new THREE.Mesh(catcherGeo, catcherMat);
   shadowCatcher.rotation.x = -Math.PI / 2;
-  shadowCatcher.position.y = -7.82;
+  shadowCatcher.position.y = -7.55;
   shadowCatcher.receiveShadow = true;
   scene.add(shadowCatcher);
 
   const glowPlanes: THREE.Mesh[] = [];
-  for (let i = 0; i < 10; i++) {
+  for (let i = 0; i < 6; i++) {
     const gMat = new THREE.MeshBasicMaterial({
       color: i % 2 === 0 ? Palette.teal : Palette.lime,
       transparent: true,
-      opacity: 0.06,
+      opacity: 0.03,
       depthWrite: false,
       blending: THREE.AdditiveBlending,
     });
@@ -530,7 +533,7 @@ export function buildEnvironment(scene: THREE.Scene): {
     disposables.push(gGeo);
     const g = new THREE.Mesh(gGeo, gMat);
     g.rotation.x = -Math.PI / 2;
-    g.position.set((i - 4.5) * 18, -7.65, -20 - i * 18);
+    g.position.set((i - 2.5) * 22, -7.48, -20 - i * 28);
     scene.add(g);
     glowPlanes.push(g);
   }

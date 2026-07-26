@@ -27,7 +27,44 @@ function softMat(
   });
 }
 
-/** Glossy candy jelly — clearcoat + sheen + mild anisotropy for wet plastic read. */
+/** Procedural vinyl micro-bump — soft noise normal for tactile plastic read. */
+function makeVinylNormalMap(size = 256, strength = 1.15): THREE.CanvasTexture {
+  const canvas = document.createElement("canvas");
+  canvas.width = size;
+  canvas.height = size;
+  const ctx = canvas.getContext("2d")!;
+  const img = ctx.createImageData(size, size);
+  const data = img.data;
+  for (let y = 0; y < size; y++) {
+    for (let x = 0; x < size; x++) {
+      const i = (y * size + x) * 4;
+      const n1 =
+        Math.sin(x * 0.11 + y * 0.07) * 0.45 +
+        Math.sin(x * 0.31 - y * 0.19) * 0.28 +
+        Math.sin((x + y) * 0.053) * 0.18;
+      const n2 =
+        Math.cos(x * 0.09 - y * 0.13) * 0.4 +
+        Math.cos(x * 0.27 + y * 0.23) * 0.25;
+      // Encode as tangent-space normal (Z-up in RGB)
+      const nx = THREE.MathUtils.clamp(0.5 + n1 * 0.12 * strength, 0, 1);
+      const ny = THREE.MathUtils.clamp(0.5 + n2 * 0.12 * strength, 0, 1);
+      data[i] = Math.floor(nx * 255);
+      data[i + 1] = Math.floor(ny * 255);
+      data[i + 2] = 255;
+      data[i + 3] = 255;
+    }
+  }
+  ctx.putImageData(img, 0, 0);
+  const tex = new THREE.CanvasTexture(canvas);
+  tex.wrapS = THREE.RepeatWrapping;
+  tex.wrapT = THREE.RepeatWrapping;
+  tex.colorSpace = THREE.NoColorSpace;
+  tex.anisotropy = 4;
+  tex.needsUpdate = true;
+  return tex;
+}
+
+/** Glossy candy jelly — vinyl clearcoat + sheen + subtle bump. */
 function jellyMat(
   color: number,
   opts: Partial<{
@@ -40,26 +77,75 @@ function jellyMat(
     emissiveIntensity: number;
     metalness: number;
     map: THREE.Texture;
+    normalMap: THREE.Texture;
+    normalScale: number;
   }> = {},
 ): THREE.MeshPhysicalMaterial {
-  const sheenColor = new THREE.Color(color).offsetHSL(0.02, 0.05, 0.08);
-  return new THREE.MeshPhysicalMaterial({
+  const sheenColor = new THREE.Color(color).offsetHSL(0.02, 0.05, 0.1);
+  const mat = new THREE.MeshPhysicalMaterial({
     color,
     map: opts.map,
-    roughness: opts.roughness ?? 0.28,
+    roughness: opts.roughness ?? 0.26,
     metalness: opts.metalness ?? 0.04,
-    clearcoat: opts.clearcoat ?? 0.92,
-    clearcoatRoughness: opts.clearcoatRoughness ?? 0.2,
-    sheen: opts.sheen ?? 0.75,
-    sheenRoughness: opts.sheenRoughness ?? 0.38,
+    clearcoat: opts.clearcoat ?? 0.9,
+    clearcoatRoughness: opts.clearcoatRoughness ?? 0.15,
+    sheen: opts.sheen ?? 0.4,
+    sheenRoughness: opts.sheenRoughness ?? 0.32,
     sheenColor,
-    anisotropy: opts.anisotropy ?? 0.4,
+    anisotropy: opts.anisotropy ?? 0.35,
     anisotropyRotation: 0.35,
-    reflectivity: 0.72,
-    envMapIntensity: 0.85,
+    reflectivity: 0.78,
+    envMapIntensity: 1.35,
     emissive: color,
-    emissiveIntensity: opts.emissiveIntensity ?? 0.02,
+    emissiveIntensity: opts.emissiveIntensity ?? 0.015,
   });
+  if (opts.normalMap) {
+    mat.normalMap = opts.normalMap;
+    mat.normalScale = new THREE.Vector2(
+      opts.normalScale ?? 0.55,
+      opts.normalScale ?? 0.55,
+    );
+  }
+  return mat;
+}
+
+/** Chevron / arrow decal for pad tops — CanvasTexture plane. */
+export function makeChevronDecalTexture(
+  fill = "#ffc857",
+  outline = "#1a1010",
+): THREE.CanvasTexture {
+  const size = 256;
+  const canvas = document.createElement("canvas");
+  canvas.width = size;
+  canvas.height = size;
+  const ctx = canvas.getContext("2d")!;
+  ctx.clearRect(0, 0, size, size);
+  const drawChevron = (oy: number, scale: number) => {
+    ctx.save();
+    ctx.translate(size / 2, size / 2 + oy);
+    ctx.scale(scale, scale);
+    ctx.beginPath();
+    ctx.moveTo(0, -58);
+    ctx.lineTo(52, 8);
+    ctx.lineTo(28, 8);
+    ctx.lineTo(28, 48);
+    ctx.lineTo(-28, 48);
+    ctx.lineTo(-28, 8);
+    ctx.lineTo(-52, 8);
+    ctx.closePath();
+    ctx.fillStyle = fill;
+    ctx.fill();
+    ctx.strokeStyle = outline;
+    ctx.lineWidth = 10;
+    ctx.stroke();
+    ctx.restore();
+  };
+  drawChevron(-28, 0.85);
+  drawChevron(42, 0.72);
+  const tex = new THREE.CanvasTexture(canvas);
+  tex.colorSpace = THREE.SRGBColorSpace;
+  tex.needsUpdate = true;
+  return tex;
 }
 
 /** Soft candy chalk — breaks flat albedo so sun hits don't read as white plastic. */
@@ -187,7 +273,7 @@ function makeConveyorTexture(): THREE.CanvasTexture {
   return tex;
 }
 
-/** Procedural candy-stadium materials — glossy jelly + chalk platforms. */
+/** Procedural candy-stadium materials — glossy vinyl jelly + chalk platforms. */
 export class MaterialLibrary {
   private readonly stripeHot = makeStripeTexture("#0a0608", "#ff4d7a", 18);
   private readonly stripeWarn = makeStripeTexture("#120e04", "#ffd24a", 20);
@@ -197,33 +283,43 @@ export class MaterialLibrary {
   private readonly chalkLime = makeChalkTexture("#6ad832");
   private readonly chalkSafe = makeChalkTexture("#62d832");
   private readonly chalkSun = makeChalkTexture("#e8a840");
+  private readonly vinylNormal = makeVinylNormalMap(256, 1.2);
+  readonly chevronDecal = makeChevronDecalTexture("#ffc857", "#120808");
+  readonly chevronHot = makeChevronDecalTexture("#ff4d7a", "#120808");
+  readonly chevronLime = makeChevronDecalTexture("#7cff3a", "#120808");
 
   readonly jellyPink = jellyMat(0xe85a88, {
-    roughness: 0.34,
-    clearcoat: 0.9,
-    clearcoatRoughness: 0.22,
-    sheen: 0.8,
-    anisotropy: 0.4,
-    emissiveIntensity: 0.015,
-    map: this.chalkPink,
-  });
-  readonly jellyCyan = jellyMat(0x3bb8d4, {
-    roughness: 0.36,
-    clearcoat: 0.88,
-    clearcoatRoughness: 0.24,
-    sheen: 0.75,
+    roughness: 0.26,
+    clearcoat: 0.94,
+    clearcoatRoughness: 0.12,
+    sheen: 0.45,
     anisotropy: 0.38,
     emissiveIntensity: 0.012,
+    map: this.chalkPink,
+    normalMap: this.vinylNormal,
+    normalScale: 0.62,
+  });
+  readonly jellyCyan = jellyMat(0x3bb8d4, {
+    roughness: 0.28,
+    clearcoat: 0.92,
+    clearcoatRoughness: 0.12,
+    sheen: 0.45,
+    anisotropy: 0.36,
+    emissiveIntensity: 0.01,
     map: this.chalkCyan,
+    normalMap: this.vinylNormal,
+    normalScale: 0.58,
   });
   readonly jellyLime = jellyMat(0x5ec028, {
-    roughness: 0.4,
-    clearcoat: 0.85,
-    clearcoatRoughness: 0.26,
-    sheen: 0.7,
+    roughness: 0.3,
+    clearcoat: 0.92,
+    clearcoatRoughness: 0.12,
+    sheen: 0.45,
     anisotropy: 0.32,
-    emissiveIntensity: 0.01,
+    emissiveIntensity: 0.008,
     map: this.chalkLime,
+    normalMap: this.vinylNormal,
+    normalScale: 0.55,
   });
   /** Hot hazard — emissive kept under bloom threshold so stripes stay readable. */
   readonly hazard = softMat(0xffffff, {
@@ -251,14 +347,16 @@ export class MaterialLibrary {
     metalness: 0.04,
   });
   readonly finish = jellyMat(0xd49830, {
-    roughness: 0.36,
-    clearcoat: 0.88,
-    clearcoatRoughness: 0.24,
-    sheen: 0.7,
+    roughness: 0.3,
+    clearcoat: 0.9,
+    clearcoatRoughness: 0.15,
+    sheen: 0.4,
     anisotropy: 0.28,
-    emissiveIntensity: 0.04,
+    emissiveIntensity: 0.035,
     metalness: 0.06,
     map: this.chalkSun,
+    normalMap: this.vinylNormal,
+    normalScale: 0.32,
   });
   readonly water = new THREE.MeshPhysicalMaterial({
     color: Palette.water,
@@ -278,12 +376,65 @@ export class MaterialLibrary {
     emissive: 0xc88840,
     emissiveIntensity: 0.08,
   });
-  /** Darker underside skirt — reads thickness without a second light pass. */
-  readonly underside = softMat(0x081214, {
-    roughness: 0.92,
-    metalness: 0.04,
-    emissive: Palette.deepTeal,
+  /** Dark underside skirt — faux AO contact at pad bottoms. */
+  readonly underside = softMat(0x020608, {
+    roughness: 0.96,
+    metalness: 0.02,
+    emissive: 0x021018,
+    emissiveIntensity: 0.01,
+  });
+  /** Soft contact blob under static pads (transparent black disc). */
+  readonly blobShadow = new THREE.MeshBasicMaterial({
+    color: 0x000000,
+    transparent: true,
+    opacity: 0.48,
+    depthWrite: false,
+    fog: false,
+  });
+  /** Tighter contact core under pads. */
+  readonly blobShadowCore = new THREE.MeshBasicMaterial({
+    color: 0x000000,
+    transparent: true,
+    opacity: 0.55,
+    depthWrite: false,
+    fog: false,
+  });
+  /** Inflatable candy prop body. */
+  readonly inflatableHot = jellyMat(0xff4d7a, {
+    roughness: 0.24,
+    clearcoat: 0.95,
+    clearcoatRoughness: 0.12,
+    sheen: 0.45,
+    anisotropy: 0.2,
     emissiveIntensity: 0.02,
+    normalMap: this.vinylNormal,
+    normalScale: 0.28,
+  });
+  readonly inflatableCyan = jellyMat(0x2ec4d8, {
+    roughness: 0.24,
+    clearcoat: 0.95,
+    clearcoatRoughness: 0.12,
+    sheen: 0.45,
+    anisotropy: 0.2,
+    emissiveIntensity: 0.02,
+    normalMap: this.vinylNormal,
+    normalScale: 0.28,
+  });
+  readonly inflatableSun = jellyMat(0xffc857, {
+    roughness: 0.26,
+    clearcoat: 0.92,
+    clearcoatRoughness: 0.14,
+    sheen: 0.4,
+    anisotropy: 0.18,
+    emissiveIntensity: 0.025,
+    normalMap: this.vinylNormal,
+    normalScale: 0.26,
+  });
+  readonly coneWarn = softMat(0xff8a3a, {
+    roughness: 0.48,
+    metalness: 0.06,
+    emissive: 0xff6a20,
+    emissiveIntensity: 0.06,
   });
   readonly trim = softMat(0xc8d0d6, {
     roughness: 0.48,
@@ -317,13 +468,15 @@ export class MaterialLibrary {
     emissiveIntensity: 0.18,
   });
   readonly safe = jellyMat(0x52b824, {
-    roughness: 0.38,
-    clearcoat: 0.8,
-    clearcoatRoughness: 0.26,
-    sheen: 0.55,
+    roughness: 0.3,
+    clearcoat: 0.9,
+    clearcoatRoughness: 0.15,
+    sheen: 0.4,
     anisotropy: 0.25,
-    emissiveIntensity: 0.03,
+    emissiveIntensity: 0.025,
     map: this.chalkSafe,
+    normalMap: this.vinylNormal,
+    normalScale: 0.32,
   });
   /** Matte rubber / candy shell for hammer heads & roller tips. */
   readonly rubberHot = softMat(Palette.hot, {
@@ -369,6 +522,7 @@ export class MaterialLibrary {
     this.chalkLime.repeat.set(2.6, 2.6);
     this.chalkSafe.repeat.set(2.0, 2.0);
     this.chalkSun.repeat.set(2.2, 2.2);
+    this.vinylNormal.repeat.set(3.5, 3.5);
   }
 
   /** Idle material juice (conveyor tread shimmer + jelly anisotropy drift). */
@@ -392,6 +546,10 @@ export class MaterialLibrary {
     this.chalkLime.dispose();
     this.chalkSafe.dispose();
     this.chalkSun.dispose();
+    this.vinylNormal.dispose();
+    this.chevronDecal.dispose();
+    this.chevronHot.dispose();
+    this.chevronLime.dispose();
     for (const mat of Object.values(this)) {
       if (mat instanceof THREE.Material) mat.dispose();
     }
