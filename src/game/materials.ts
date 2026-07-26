@@ -336,7 +336,7 @@ export class MaterialLibrary {
     map: this.stripeWarn,
     emissive: Palette.sun,
     emissiveMap: this.stripeWarn,
-    emissiveIntensity: 0.48,
+    emissiveIntensity: 0.22,
   });
   readonly metal = softMat(Palette.metal, {
     roughness: 0.28,
