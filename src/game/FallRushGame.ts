@@ -39,6 +39,7 @@ export class FallRushGame {
   private readonly speedEl = $("speed");
   private readonly finishTimeEl = $("finish-time");
   private readonly vignette = $("damage-vignette");
+  private readonly pauseHint = $("pause-hint");
 
   private running = false;
   private finished = false;
@@ -48,6 +49,7 @@ export class FallRushGame {
   private anim = 0;
   private time = 0;
   private disposed = false;
+  private checkpointToastTimer = 0;
   private readonly playerBox = new THREE.Box3();
   private readonly playerSize = new THREE.Vector3(0.5, 1.6, 0.5);
 
@@ -86,6 +88,7 @@ export class FallRushGame {
     if (this.disposed) return;
     this.disposed = true;
     cancelAnimationFrame(this.anim);
+    window.clearTimeout(this.checkpointToastTimer);
     document.removeEventListener("pointerlockchange", this.onLockChange);
     this.player?.dispose();
     this.course?.dispose();
@@ -100,13 +103,16 @@ export class FallRushGame {
     await this.audio.unlock();
     this.overlay.classList.add("hidden");
     this.finishOverlay.classList.add("hidden");
-    this.hud.classList.remove("hidden");
+    this.finishOverlay.classList.remove("celebrate");
+    this.hud.classList.remove("hidden", "paused");
+    this.pauseHint.classList.add("hidden");
     this.finished = false;
     this.running = true;
     this.startMs = performance.now();
     this.elapsedMs = 0;
     this.checkpointIndex = 0;
     this.checkpointEl.textContent = this.course.checkpoints[0]!.name;
+    this.checkpointEl.classList.remove("toast");
     this.player.respawn();
     this.player.setCheckpoint(this.course.spawn);
     this.player.requestLock();
@@ -121,7 +127,11 @@ export class FallRushGame {
   private onLockChange = (): void => {
     if (!this.running || this.finished) return;
     if (document.pointerLockElement !== this.canvas) {
-      // Paused visually — keep sim soft-paused by not updating player wish when unlocked
+      this.hud.classList.add("paused");
+      this.pauseHint.classList.remove("hidden");
+    } else {
+      this.hud.classList.remove("paused");
+      this.pauseHint.classList.add("hidden");
     }
   };
 
@@ -190,6 +200,7 @@ export class FallRushGame {
       this.checkpointIndex = next.index;
       this.player.setCheckpoint(next.position.clone().setY(next.position.y));
       this.checkpointEl.textContent = next.name;
+      this.flashCheckpointToast();
       this.audio.checkpoint();
     }
   }
@@ -203,10 +214,24 @@ export class FallRushGame {
     this.finished = true;
     this.running = false;
     document.exitPointerLock();
+    this.pauseHint.classList.add("hidden");
+    this.hud.classList.remove("paused");
     this.finishTimeEl.textContent = formatTime(this.elapsedMs);
+    this.finishOverlay.classList.add("celebrate");
     this.finishOverlay.classList.remove("hidden");
     this.hud.classList.add("hidden");
     this.audio.finish();
+  }
+
+  private flashCheckpointToast(): void {
+    this.checkpointEl.classList.remove("toast");
+    // Force reflow so the toast animation retriggers on rapid advances
+    void this.checkpointEl.offsetWidth;
+    this.checkpointEl.classList.add("toast");
+    window.clearTimeout(this.checkpointToastTimer);
+    this.checkpointToastTimer = window.setTimeout(() => {
+      this.checkpointEl.classList.remove("toast");
+    }, 700);
   }
 
   private flashDamage(): void {

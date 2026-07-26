@@ -13,36 +13,72 @@
   <body>
     <div id="app">
       <canvas id="game-canvas"></canvas>
+
       <div id="hud" class="hud hidden" aria-live="polite">
         <div class="hud-top">
-          <div class="timer" id="timer">00:00.00</div>
-          <div class="checkpoint" id="checkpoint">START</div>
+          <div class="timer-stack">
+            <span class="timer-label">TIME</span>
+            <div class="timer" id="timer">00:00.00</div>
+          </div>
+          <div class="checkpoint-wrap">
+            <div class="checkpoint" id="checkpoint">START</div>
+          </div>
         </div>
+
         <div class="crosshair" aria-hidden="true"></div>
+
+        <div id="pause-hint" class="pause-hint hidden" aria-live="polite">
+          <div class="pause-reticle" aria-hidden="true"></div>
+          <p class="pause-copy">CLICK TO RESUME</p>
+        </div>
+
         <div class="hud-bottom">
-          <div class="speed" id="speed">0 <span>m/s</span></div>
-          <div class="hint">WASD move · Space jump · Shift sprint · Esc pause</div>
+          <div class="speed-stack">
+            <div class="speed" id="speed">0 <span>m/s</span></div>
+          </div>
+          <div class="hint desktop-only">WASD · SPACE · SHIFT · ESC</div>
         </div>
       </div>
-      <div id="overlay" class="overlay">
-        <div class="overlay-bg" aria-hidden="true"></div>
-        <div class="overlay-content">
-          <p class="eyebrow">FIRST-PERSON GAUNTLET</p>
-          <h1 class="logo">FALL<br />RUSH</h1>
+
+      <div id="overlay" class="overlay title-screen">
+        <div class="overlay-bg" aria-hidden="true">
+          <div class="bg-blob blob-a"></div>
+          <div class="bg-blob blob-b"></div>
+          <div class="bg-blob blob-c"></div>
+          <div class="bg-grid"></div>
+        </div>
+        <div class="overlay-content title-content">
+          <h1 class="logo" aria-label="Fall Rush">
+            <span class="logo-line logo-fall">FALL</span>
+            <span class="logo-line logo-rush">RUSH</span>
+          </h1>
           <p class="tagline">One path. Zero mercy. Don't look down.</p>
-          <button id="start-btn" class="cta" type="button">CLICK TO PLAY</button>
-          <p class="controls-note">Pointer lock · Fullscreen recommended</p>
+          <button id="start-btn" class="cta" type="button">
+            <span class="cta-label">CLICK TO PLAY</span>
+          </button>
+          <p class="controls-note desktop-only">Pointer lock · Fullscreen recommended</p>
         </div>
       </div>
-      <div id="finish" class="overlay hidden">
-        <div class="overlay-bg" aria-hidden="true"></div>
-        <div class="overlay-content">
-          <p class="eyebrow">COURSE COMPLETE</p>
+
+      <div id="finish" class="overlay finish-screen hidden">
+        <div class="overlay-bg finish-bg" aria-hidden="true">
+          <div class="confetti" aria-hidden="true">
+            <i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i>
+            <i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i>
+          </div>
+          <div class="bg-blob blob-a"></div>
+          <div class="bg-blob blob-b"></div>
+        </div>
+        <div class="overlay-content finish-content">
+          <p class="eyebrow finish-eyebrow">COURSE COMPLETE</p>
           <h2 class="logo finish-title">QUALIFIED!</h2>
           <p class="finish-time" id="finish-time">00:00.00</p>
-          <button id="retry-btn" class="cta" type="button">RUN AGAIN</button>
+          <button id="retry-btn" class="cta cta-secondary" type="button">
+            <span class="cta-label">RUN AGAIN</span>
+          </button>
         </div>
       </div>
+
       <div id="damage-vignette" aria-hidden="true"></div>
     </div>
     <script type="module" src="/src/main.ts"></script>
