@@ -1,5 +1,6 @@
 import {
   Color,
+  DoubleSide,
   MeshPhysicalMaterial,
   MeshStandardMaterial,
   type Texture,
@@ -583,6 +584,7 @@ export function createPoolWaterMaterial(): MeshPhysicalMaterial {
     transparent: true,
     opacity: 0.72,
     depthWrite: false,
+    side: DoubleSide,
     envMapIntensity: 0.85,
   });
   return mat;
